@@ -1,0 +1,17 @@
+[package]
+name = "anirel"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.104"
+clap = { version = "4.6.7", features = ["derive", "env"] }
+crossterm = "0.29.0"
+image = { version = "0.25.10", default-features = false, features = ["jpeg"] }
+ratatui = "0.30.2"
+reqwest = { version = "0.13.5", features = ["json", "rustls"] }
+serde = { version = "1.0.229", features = ["derive"] }
+serde_json = "1.0.154"
+thiserror = "2.0.21"
+tokio = { version = "1.54.1", features = ["rt-multi-thread", "macros", "sync", "time"] }
+unicode-width = "0.2.3"
