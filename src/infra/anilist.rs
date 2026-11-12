@@ -113,6 +113,11 @@ impl Media {
                 Some(id) => format!("Anime {id}"),
                 None => "Unknown title".to_string(),
             });
+        let aired_from = self
+            .start_date
+            .as_ref()
+            .and_then(|d| Some((d.year?, d.month.unwrap_or(1), d.day.unwrap_or(1))));
+
         Some(Anime {
             mal_id,
             title,
@@ -121,6 +126,7 @@ impl Media {
             episodes: self.episodes,
             airing_status: airing_status(self.status.as_deref()),
             year: self.start_date.as_ref().and_then(|d| d.year),
+            aired_from,
             score: self.average_score.map(|s| s / 10.0),
             cover_url: self
                 .cover_image

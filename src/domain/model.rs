@@ -14,6 +14,8 @@ pub struct Anime {
     pub episodes: Option<i64>,
     pub airing_status: String,
     pub year: Option<i32>,
+    /// Precise release date, when known.
+    pub aired_from: Option<(i32, i32, i32)>,
     pub score: Option<f64>,
     /// Cover image URL, when one is known.
     pub cover_url: Option<String>,

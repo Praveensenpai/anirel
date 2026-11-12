@@ -13,6 +13,7 @@ fn anime(mal_id: i64, title: &str, year: i32, format: &str) -> Anime {
         episodes: Some(12),
         airing_status: "Finished Airing".into(),
         year: Some(year),
+        aired_from: Some((year, 1, 1)),
         score: Some(8.0),
         cover_url: None,
     }

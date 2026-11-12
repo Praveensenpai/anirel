@@ -173,6 +173,7 @@ fn parse_list_items(html: &str) -> (usize, Vec<LibraryEntry>) {
                     episodes: raw.anime_num_episodes,
                     airing_status: airing_status(raw.anime_airing_status),
                     year: parse_year(raw.anime_start_date_string.as_deref()),
+                    aired_from: parse_date(raw.anime_start_date_string.as_deref()),
                     score: None,
                     cover_url: raw.anime_image_path.clone(),
                 },
@@ -192,6 +193,21 @@ fn airing_status(code: i64) -> String {
         3 => "Not yet aired".into(),
         _ => "Unknown".into(),
     }
+}
+
+/// MAL dates look like `01-04-18`.
+fn parse_date(date: Option<&str>) -> Option<(i32, i32, i32)> {
+    let date = date?;
+    let mut parts = date.split('-');
+    let month: i32 = parts.next()?.parse().ok()?;
+    let day: i32 = parts.next()?.parse().ok()?;
+    let year_part: i32 = parts.next()?.parse().ok()?;
+    let year = if year_part < 100 {
+        2000 + year_part
+    } else {
+        year_part
+    };
+    Some((year, month, day))
 }
 
 /// MAL dates look like `01-04-18`.
