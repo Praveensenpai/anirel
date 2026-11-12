@@ -38,8 +38,6 @@ async fn event_loop(
     tx: &mpsc::UnboundedSender<ScanEvent>,
     engine: &Engine,
 ) -> anyhow::Result<()> {
-    let mut pending_covers: std::collections::HashSet<i64> = std::collections::HashSet::new();
-
     loop {
         terminal.draw(|f| crate::ui::draw(f, state))?;
 
@@ -55,8 +53,6 @@ async fn event_loop(
                 _ => {}
             }
         }
-
-        request_cover(state, tx, &mut pending_covers);
 
         while let Ok(event) = rx.try_recv() {
             match event {
@@ -81,9 +77,7 @@ async fn event_loop(
                     state.scan.error = Some(error);
                     state.loading = None;
                 }
-                ScanEvent::CoverReady(mal_id, art) => {
-                    state.covers.insert(mal_id, art);
-                }
+                ScanEvent::CoverReady(_, _) => {}
                 ScanEvent::LoadComplete(mal_id) => {
                     let hops = state.loading.as_ref().map(|l| l.hops).unwrap_or(2);
                     // The franchise is rooted at the title that was loaded, so
@@ -194,48 +188,6 @@ fn handle_effect(
             notify(state, "loading every franchise…", MessageKind::Info);
         }
     }
-}
-
-/// Fetch the cover art of the selected title once, in the background.
-fn request_cover(
-    state: &mut AppState,
-    tx: &mpsc::UnboundedSender<ScanEvent>,
-    pending: &mut std::collections::HashSet<i64>,
-) {
-    let Some(anime) = state.current_anime() else {
-        return;
-    };
-    let mal_id = anime.mal_id;
-    if state.covers.contains_key(&mal_id) || pending.contains(&mal_id) {
-        return;
-    }
-    let Some(url) = anime.cover_url.clone() else {
-        pending.insert(mal_id);
-        return;
-    };
-
-    let path = crate::art::cover_path(&url);
-    if path.exists() {
-        if let Ok(art) = crate::art::decode(&path) {
-            state.covers.insert(mal_id, art);
-        } else {
-            pending.insert(mal_id);
-        }
-        return;
-    }
-
-    pending.insert(mal_id);
-    if std::env::var_os("ANIREL_DEBUG").is_some() {
-        eprintln!("fetching cover for {mal_id}: {url}");
-    }
-    let tx = tx.clone();
-    tokio::spawn(async move {
-        if let Some(path) = crate::art::ensure_cached(&url).await
-            && let Ok(art) = crate::art::decode(&path)
-        {
-            tx.send(ScanEvent::CoverReady(mal_id, art)).ok();
-        }
-    });
 }
 
 /// Load the relations of a single title, on demand.

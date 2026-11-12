@@ -1,11 +1,10 @@
-//! The poster card: artwork, metadata and the completion bar.
+//! The poster card: title, metadata and the completion bar.
 
 use ratatui::prelude::*;
 use ratatui::widgets::{Paragraph, Wrap};
 use unicode_width::UnicodeWidthStr;
 
 use crate::app::state::{AppState, Focus};
-use crate::art::{self, CoverArt};
 use crate::ui::theme::Theme;
 use crate::ui::widgets::{fit, panel};
 
@@ -28,33 +27,6 @@ pub fn render_poster(f: &mut Frame, area: Rect, state: &AppState) {
     };
 
     let mut y = inner.y;
-
-    // Artwork.
-    let art_height = (inner.height / 3).clamp(6, 18);
-    if let Some(cover) = state.covers.get(&anime.mal_id) {
-        draw_cover(
-            f,
-            Rect {
-                x: inner.x,
-                y,
-                width: inner.width,
-                height: art_height,
-            },
-            cover,
-        );
-    } else {
-        draw_placeholder(
-            f,
-            Rect {
-                x: inner.x,
-                y,
-                width: inner.width,
-                height: art_height,
-            },
-            anime.display_title(),
-        );
-    }
-    y += art_height + 1;
 
     // Title.
     let title = fit(anime.display_title(), inner.width as usize);
@@ -155,79 +127,6 @@ pub fn render_poster(f: &mut Frame, area: Rect, state: &AppState) {
             );
         }
     }
-}
-
-/// Draw the cover as half blocks: upper pixel in the foreground, lower in the background.
-fn draw_cover(f: &mut Frame, area: Rect, cover: &CoverArt) {
-    if area.width == 0 || area.height == 0 {
-        return;
-    }
-    let pixel_width = area.width as usize;
-    let pixel_height = (area.height as usize) * 2;
-    let pixels = cover.resample(pixel_width, pixel_height);
-
-    let mut lines: Vec<Line> = Vec::with_capacity(area.height as usize);
-    for row in 0..area.height as usize {
-        let mut spans: Vec<Span> = Vec::with_capacity(area.width as usize);
-        for column in 0..area.width as usize {
-            let top = ((row * 2) * pixel_width + column) * 3;
-            let bottom = ((row * 2 + 1) * pixel_width + column) * 3;
-            if top + 2 >= pixels.len() || bottom + 2 >= pixels.len() {
-                spans.push(Span::raw(" "));
-                continue;
-            }
-            spans.push(Span::styled(
-                "▀",
-                Style::default()
-                    .fg(art::color(pixels[top], pixels[top + 1], pixels[top + 2]))
-                    .bg(art::color(
-                        pixels[bottom],
-                        pixels[bottom + 1],
-                        pixels[bottom + 2],
-                    )),
-            ));
-        }
-        lines.push(Line::from(spans));
-    }
-    f.render_widget(Paragraph::new(lines), area);
-}
-
-/// A stylised placeholder for titles whose cover is not loaded yet.
-fn draw_placeholder(f: &mut Frame, area: Rect, title: &str) {
-    if area.width == 0 || area.height == 0 {
-        return;
-    }
-    let initial = title.chars().find(|c| c.is_alphanumeric()).unwrap_or('?');
-    let mut lines: Vec<Line> = Vec::new();
-
-    let middle = area.height as usize / 2;
-    for row in 0..area.height as usize {
-        if row == middle {
-            let padding = (area.width as usize).saturating_sub(3) / 2;
-            lines.push(Line::from(vec![
-                Span::raw(" ".repeat(padding)),
-                Span::styled(
-                    format!(" {initial} "),
-                    Theme::bold(Theme::accent()).bg(ratatui::style::Color::DarkGray),
-                ),
-            ]));
-        } else {
-            let pattern: String = (0..area.width as usize)
-                .map(|column| {
-                    if (row + column) % 2 == 0 {
-                        '▚'
-                    } else {
-                        '▞'
-                    }
-                })
-                .collect();
-            lines.push(Line::from(Span::styled(
-                pattern,
-                ratatui::style::Style::default().fg(ratatui::style::Color::Rgb(28, 32, 38)),
-            )));
-        }
-    }
-    f.render_widget(Paragraph::new(lines), area);
 }
 
 /// Width of the poster pane for a given terminal width.

@@ -1,8 +1,5 @@
 //! Application state and pure state transitions.
 
-use std::collections::HashMap;
-
-use crate::art::CoverArt;
 use crate::config::Scope;
 use crate::domain::cluster::{Cluster, RelationGraph, build_clusters};
 use crate::domain::model::{Anime, Library, LibraryEntry};
@@ -93,8 +90,6 @@ pub struct AppState {
     pub loading: Option<Loading>,
     pub scan: ScanStatus,
     pub scope: Scope,
-    /// Decoded cover art, by anime id.
-    pub covers: HashMap<i64, CoverArt>,
     /// Which franchise the detail pane shows. `None` follows the selection.
     pub detail_root: Option<i64>,
     /// A franchise rooted at a specific title, shown after a dive.
@@ -132,7 +127,6 @@ impl AppState {
             loading: None,
             scan: ScanStatus::default(),
             scope,
-            covers: HashMap::new(),
             detail_root: None,
             focus_cluster: None,
             rows: Vec::new(),
