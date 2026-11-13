@@ -12,6 +12,7 @@ fn anime(mal_id: i64, title: &str, year: i32, format: &str) -> Anime {
         mal_id,
         title: title.into(),
         title_english: None,
+        title_japanese: None,
         format: format.into(),
         episodes: Some(12),
         airing_status: "Finished Airing".into(),
@@ -81,6 +82,29 @@ fn renders_the_library_pane_and_the_poster_card() {
     assert!(
         frame.contains("POSTER"),
         "the poster card is shown:\n{frame}"
+    );
+}
+
+#[test]
+fn poster_renders_romaji_english_and_japanese_titles() {
+    let mut state = AppState::new("Praveen20".into(), library(), Scope::default());
+    let mut item = anime(1, "Yuru Camp△", 2018, "TV");
+    item.title_english = Some("Laid-Back Camp".into());
+    item.title_japanese = Some("ゆるキャン△".into());
+    state.ingest(item, vec![]);
+    state.rebuild();
+    // Select Yuru Camp△ which is at index 1 after alphabetical sort
+    state.selected = 1;
+
+    let frame = render(&state, 140, 28);
+    assert!(frame.contains("Yuru Camp△"), "romaji title shown:\n{frame}");
+    assert!(
+        frame.contains("Laid-Back Camp"),
+        "english title shown:\n{frame}"
+    );
+    assert!(
+        frame.contains('ゆ') && frame.contains('る'),
+        "japanese title shown:\n{frame}"
     );
 }
 

@@ -27,22 +27,69 @@ pub fn render_poster(f: &mut Frame, area: Rect, state: &AppState) {
     };
 
     let mut y = inner.y;
+    let max_y = inner.y + inner.height;
 
-    // Title.
-    let title = fit(anime.display_title(), inner.width as usize);
-    f.render_widget(
-        Paragraph::new(Line::from(Span::styled(
-            title,
-            Theme::bold(Theme::accent()),
-        ))),
-        Rect {
-            x: inner.x,
-            y,
-            width: inner.width,
-            height: 1,
-        },
-    );
-    y += 1;
+    // Romaji title (primary).
+    if y < max_y {
+        let title_romaji = fit(anime.romaji_title(), inner.width as usize);
+        f.render_widget(
+            Paragraph::new(Line::from(Span::styled(
+                title_romaji,
+                Theme::bold(Theme::accent()),
+            ))),
+            Rect {
+                x: inner.x,
+                y,
+                width: inner.width,
+                height: 1,
+            },
+        );
+        y += 1;
+    }
+
+    // English title, if present.
+    if let Some(english) = anime.english_title()
+        && y < max_y
+    {
+        let title_eng = fit(english, inner.width.saturating_sub(4) as usize);
+        f.render_widget(
+            Paragraph::new(Line::from(vec![
+                Span::styled("EN  ", Theme::muted()),
+                Span::styled(title_eng, Theme::base()),
+            ])),
+            Rect {
+                x: inner.x,
+                y,
+                width: inner.width,
+                height: 1,
+            },
+        );
+        y += 1;
+    }
+
+    // Nihongo (Japanese) title, if present.
+    if let Some(japanese) = anime.japanese_title()
+        && y < max_y
+    {
+        let title_ja = fit(japanese, inner.width.saturating_sub(4) as usize);
+        f.render_widget(
+            Paragraph::new(Line::from(vec![
+                Span::styled("JA  ", Theme::muted()),
+                Span::styled(title_ja, Theme::base()),
+            ])),
+            Rect {
+                x: inner.x,
+                y,
+                width: inner.width,
+                height: 1,
+            },
+        );
+        y += 1;
+    }
+
+    if y < max_y {
+        y += 1;
+    }
 
     // Facts.
     let mut facts = vec![anime.format.clone()];

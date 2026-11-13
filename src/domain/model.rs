@@ -10,6 +10,8 @@ pub struct Anime {
     pub mal_id: i64,
     pub title: String,
     pub title_english: Option<String>,
+    #[serde(default)]
+    pub title_japanese: Option<String>,
     pub format: String,
     pub episodes: Option<i64>,
     pub airing_status: String,
@@ -22,12 +24,38 @@ pub struct Anime {
 }
 
 impl Anime {
-    /// Prefer the English title, but never an empty one.
+    /// Return the primary display title (Romaji title).
     pub fn display_title(&self) -> &str {
-        match self.title_english.as_deref() {
-            Some(english) if !english.trim().is_empty() => english,
-            _ => &self.title,
+        self.romaji_title()
+    }
+
+    /// The Romaji title, falling back to English if Romaji is blank.
+    pub fn romaji_title(&self) -> &str {
+        if !self.title.trim().is_empty() {
+            &self.title
+        } else if let Some(english) = self
+            .title_english
+            .as_deref()
+            .filter(|s| !s.trim().is_empty())
+        {
+            english
+        } else {
+            &self.title
         }
+    }
+
+    /// English title, if present and different from Romaji title.
+    pub fn english_title(&self) -> Option<&str> {
+        self.title_english.as_deref().filter(|s| {
+            !s.trim().is_empty() && s.trim().to_lowercase() != self.title.trim().to_lowercase()
+        })
+    }
+
+    /// Japanese (Nihongo) native title, if present and different from Romaji title.
+    pub fn japanese_title(&self) -> Option<&str> {
+        self.title_japanese
+            .as_deref()
+            .filter(|s| !s.trim().is_empty() && s.trim() != self.title.trim())
     }
 
     pub fn url(&self) -> String {
@@ -137,6 +165,11 @@ impl Library {
 
     pub fn get(&self, mal_id: i64) -> Option<&LibraryEntry> {
         self.index.get(&mal_id).map(|i| &self.entries[*i])
+    }
+
+    pub fn get_mut(&mut self, mal_id: i64) -> Option<&mut LibraryEntry> {
+        let idx = *self.index.get(&mal_id)?;
+        self.entries.get_mut(idx)
     }
 
     pub fn contains(&self, mal_id: i64) -> bool {

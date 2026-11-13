@@ -9,6 +9,7 @@ fn anime(mal_id: i64, title: &str, year: i32, format: &str) -> Anime {
         mal_id,
         title: title.into(),
         title_english: None,
+        title_japanese: None,
         format: format.into(),
         episodes: Some(12),
         airing_status: "Finished Airing".into(),
@@ -166,4 +167,16 @@ fn related_to_is_rooted_at_the_seed() {
     );
     assert!(ids.contains(&5), "the prequel is included: {ids:?}");
     assert!(!ids.contains(&2), "the other season is not: {ids:?}");
+}
+
+#[test]
+fn anime_title_prefers_romaji_and_exposes_english_and_japanese() {
+    let mut item = anime(34798, "Yuru Camp△", 2018, "TV");
+    item.title_english = Some("Laid-Back Camp".into());
+    item.title_japanese = Some("ゆるキャン△".into());
+
+    assert_eq!(item.display_title(), "Yuru Camp△");
+    assert_eq!(item.romaji_title(), "Yuru Camp△");
+    assert_eq!(item.english_title(), Some("Laid-Back Camp"));
+    assert_eq!(item.japanese_title(), Some("ゆるキャン△"));
 }

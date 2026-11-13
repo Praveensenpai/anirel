@@ -14,6 +14,7 @@ fn anime(mal_id: i64, title: &str, english: &str, year: i32, format: &str, eps: 
         mal_id,
         title: title.into(),
         title_english: Some(english.into()),
+        title_japanese: None,
         format: format.into(),
         episodes: Some(eps),
         airing_status: "Finished Airing".into(),
@@ -22,6 +23,11 @@ fn anime(mal_id: i64, title: &str, english: &str, year: i32, format: &str, eps: 
         score: Some(8.0),
         cover_url: None,
     }
+}
+
+fn with_ja(mut a: Anime, ja: &str) -> Anime {
+    a.title_japanese = Some(ja.into());
+    a
 }
 
 fn main() {
@@ -36,19 +42,25 @@ fn main() {
 
     let library = Library::new(vec![
         LibraryEntry {
-            anime: anime(34798, "Yuru Camp△", "Laid-Back Camp", 2018, "TV", 12),
+            anime: with_ja(
+                anime(34798, "Yuru Camp△", "Laid-Back Camp", 2018, "TV", 12),
+                "ゆるキャン△",
+            ),
             status: LibraryStatus::Completed,
             score: 10,
             episodes_watched: 12,
         },
         LibraryEntry {
-            anime: anime(
-                38474,
-                "Yuru Camp△ Season 2",
-                "Laid-Back Camp Season 2",
-                2021,
-                "TV",
-                13,
+            anime: with_ja(
+                anime(
+                    38474,
+                    "Yuru Camp△ Season 2",
+                    "Laid-Back Camp Season 2",
+                    2021,
+                    "TV",
+                    13,
+                ),
+                "ゆるキャン△ SEASON２",
             ),
             status: LibraryStatus::Completed,
             score: 10,
@@ -61,13 +73,19 @@ fn main() {
             episodes_watched: 0,
         },
         LibraryEntry {
-            anime: anime(38000, "Kimetsu no Yaiba", "Demon Slayer", 2018, "TV", 26),
+            anime: with_ja(
+                anime(38000, "Kimetsu no Yaiba", "Demon Slayer", 2018, "TV", 26),
+                "鬼滅の刃",
+            ),
             status: LibraryStatus::Watching,
             score: 9,
             episodes_watched: 13,
         },
         LibraryEntry {
-            anime: anime(1535, "Death Note", "Death Note", 2006, "TV", 37),
+            anime: with_ja(
+                anime(1535, "Death Note", "Death Note", 2006, "TV", 37),
+                "デスノート",
+            ),
             status: LibraryStatus::Completed,
             score: 10,
             episodes_watched: 37,
@@ -75,9 +93,13 @@ fn main() {
     ]);
 
     let mut state = AppState::new("Praveen20".into(), library, Scope::default());
+    state.selected = 2;
 
     state.ingest(
-        anime(34798, "Yuru Camp△", "Laid-Back Camp", 2018, "TV", 12),
+        with_ja(
+            anime(34798, "Yuru Camp△", "Laid-Back Camp", 2018, "TV", 12),
+            "ゆるキャン△",
+        ),
         vec![
             (38474, RelationKind::Sequel),
             (38475, RelationKind::SideStory),
@@ -174,11 +196,18 @@ fn main() {
     state.rebuild();
 
     // Put the cursor on the Yuru Camp title so a franchise is shown.
-    if let Some(index) = state
-        .rows()
-        .iter()
-        .position(|row| matches!(row, anirel::app::state::Row::Library(_)))
-    {
+    if let Some(index) = state.rows().iter().position(|row| {
+        if let anirel::app::state::Row::Library(i) = row {
+            state
+                .library
+                .entries
+                .get(*i)
+                .map(|e| e.anime.title.as_str())
+                == Some("Yuru Camp△")
+        } else {
+            false
+        }
+    }) {
         state.selected = index;
     }
 

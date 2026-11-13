@@ -23,9 +23,9 @@ pub const REQUEST_PAUSE: Duration = Duration::from_millis(2200);
 ///
 /// Relation nodes only carry the fields needed to recognise them as anime;
 /// their full metadata is fetched when they are resolved on their own.
-const MEDIA_FIELDS: &str = "id idMal title { romaji english } format episodes status \
+const MEDIA_FIELDS: &str = "id idMal title { romaji english native } format episodes status \
      startDate { year month day } averageScore coverImage { large } \
-     relations { edges { relationType node { idMal title { romaji } format } } }";
+     relations { edges { relationType node { idMal title { romaji english native } format } } }";
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Title {
@@ -33,6 +33,8 @@ pub struct Title {
     pub romaji: Option<String>,
     #[serde(default)]
     pub english: Option<String>,
+    #[serde(default)]
+    pub native: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
@@ -122,6 +124,7 @@ impl Media {
             mal_id,
             title,
             title_english: self.title.english.clone(),
+            title_japanese: self.title.native.clone(),
             format,
             episodes: self.episodes,
             airing_status: airing_status(self.status.as_deref()),
@@ -321,7 +324,7 @@ impl Default for AniListClient {
 /// Search AniList by title, returning MAL ids.
 pub async fn search(_client: &AniListClient, query: &str) -> Result<Vec<Anime>> {
     let http = reqwest::Client::new();
-    let gql = r#"query ($q: String) { Page(page: 1, perPage: 10) { media(search: $q, type: ANIME, sort: SEARCH_MATCH) { id idMal title { romaji english } format episodes status startDate { year } averageScore } } }"#;
+    let gql = r#"query ($q: String) { Page(page: 1, perPage: 10) { media(search: $q, type: ANIME, sort: SEARCH_MATCH) { id idMal title { romaji english native } format episodes status startDate { year } averageScore } } }"#;
     let payload = json!({ "query": gql, "variables": { "q": query } });
     let response = http
         .post(ENDPOINT)

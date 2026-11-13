@@ -315,6 +315,23 @@ fn render_unloaded(f: &mut Frame, area: Rect, state: &AppState) {
     };
     let mut lines: Vec<Line> = Vec::new();
 
+    let mut alt = Vec::new();
+    if let Some(english) = anime.english_title() {
+        alt.push(Span::styled("EN: ", Theme::muted()));
+        alt.push(Span::styled(english, Theme::base()));
+    }
+    if let Some(japanese) = anime.japanese_title() {
+        if !alt.is_empty() {
+            alt.push(Span::styled("  ·  ", Theme::muted()));
+        }
+        alt.push(Span::styled("JA: ", Theme::muted()));
+        alt.push(Span::styled(japanese, Theme::base()));
+    }
+    if !alt.is_empty() {
+        lines.push(Line::from(alt));
+        lines.push(Line::default());
+    }
+
     let mut meta = vec![anime.format.clone()];
     meta.push(match anime.episodes {
         Some(episodes) => format!("{episodes} ep"),

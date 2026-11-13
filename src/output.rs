@@ -12,6 +12,7 @@ pub struct MemberInfo {
     pub mal_id: i64,
     pub title: String,
     pub title_english: Option<String>,
+    pub title_japanese: Option<String>,
     pub format: String,
     pub episodes: Option<i64>,
     pub year: Option<i32>,
@@ -30,7 +31,17 @@ impl MemberInfo {
     }
 
     pub fn display_title(&self) -> &str {
-        self.title_english.as_deref().unwrap_or(&self.title)
+        if !self.title.trim().is_empty() {
+            &self.title
+        } else if let Some(english) = self
+            .title_english
+            .as_deref()
+            .filter(|s| !s.trim().is_empty())
+        {
+            english
+        } else {
+            &self.title
+        }
     }
 }
 
@@ -94,6 +105,7 @@ pub fn report_from_members(
                 mal_id: anime.mal_id,
                 title: anime.title.clone(),
                 title_english: anime.title_english.clone(),
+                title_japanese: anime.title_japanese.clone(),
                 format: anime.format.clone(),
                 episodes: anime.episodes,
                 year: anime.year,
@@ -307,6 +319,7 @@ fn member_json(member: &MemberInfo) -> Value {
         "mal_id": member.mal_id,
         "title": member.title,
         "title_english": member.title_english,
+        "title_japanese": member.title_japanese,
         "format": member.format,
         "episodes": member.episodes,
         "year": member.year,

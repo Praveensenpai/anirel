@@ -97,15 +97,22 @@ pub struct AppState {
     rows: Vec<Row>,
 }
 
-/// Does a title match the filter? Both the original and the English title.
+/// Does a title match the filter? Original romaji, English or Japanese title.
 fn matches_filter(anime: &Anime, filter: &str) -> bool {
     if anime.title.to_lowercase().contains(filter) {
         return true;
     }
-    anime
+    if anime
         .title_english
         .as_deref()
         .is_some_and(|english| english.to_lowercase().contains(filter))
+    {
+        return true;
+    }
+    anime
+        .title_japanese
+        .as_deref()
+        .is_some_and(|japanese| japanese.to_lowercase().contains(filter))
 }
 
 impl AppState {
@@ -138,6 +145,9 @@ impl AppState {
     /// Integrate newly resolved titles and recompute the franchises.
     pub fn ingest(&mut self, anime: Anime, relations: Vec<(i64, RelationKind)>) {
         let from = anime.mal_id;
+        if let Some(entry) = self.library.get_mut(from) {
+            entry.anime = anime.clone();
+        }
         self.graph.insert_media(anime);
         for (target, kind) in relations {
             self.graph.add_edge(from, target, kind);
@@ -294,6 +304,21 @@ impl AppState {
 
     /// The anime the user should act on (open/copy/load).
     pub fn current_anime(&self) -> Option<&Anime> {
+        let mal_id = match self.rows.get(self.selected) {
+            Some(Row::Library(index)) => self.library.entries.get(*index)?.anime.mal_id,
+            Some(Row::Gap { cluster, member }) => {
+                self.clusters
+                    .get(*cluster)?
+                    .members
+                    .get(*member)?
+                    .anime
+                    .mal_id
+            }
+            None => return None,
+        };
+        if let Some(anime) = self.graph.media(mal_id) {
+            return Some(anime);
+        }
         match self.rows.get(self.selected) {
             Some(Row::Library(index)) => Some(&self.library.entries.get(*index)?.anime),
             Some(Row::Gap { cluster, member }) => {

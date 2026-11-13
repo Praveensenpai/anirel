@@ -165,6 +165,7 @@ fn parse_list_items(html: &str) -> (usize, Vec<LibraryEntry>) {
                     mal_id: raw.anime_id,
                     title,
                     title_english: raw.anime_title_eng.clone(),
+                    title_japanese: None,
                     format: item
                         .get("anime_media_type_string")
                         .and_then(Value::as_str)

@@ -219,6 +219,7 @@ async fn search(cli: &Cli, query: &str) -> Result<i32> {
                     "mal_id": a.mal_id,
                     "title": a.title,
                     "title_english": a.title_english,
+                    "title_japanese": a.title_japanese,
                     "format": a.format,
                     "episodes": a.episodes,
                     "year": a.year,
