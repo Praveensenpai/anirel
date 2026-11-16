@@ -130,6 +130,7 @@ pub fn render_footer(f: &mut Frame, area: Rect, state: &AppState) {
         ("tab", "focus"),
         ("/", "filter"),
         ("L", "load"),
+        ("F", "refresh list"),
         ("o", "open"),
         ("c", "copy"),
         ("a", "scan all"),

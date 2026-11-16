@@ -78,6 +78,25 @@ async fn event_loop(
                     state.loading = None;
                 }
                 ScanEvent::CoverReady(_, _) => {}
+                ScanEvent::LibraryRefreshed(result) => match result {
+                    Ok(library) => {
+                        let count = library.entries.len();
+                        state.library = library;
+                        state.rebuild();
+                        notify(
+                            state,
+                            format!("list refreshed · {count} titles"),
+                            MessageKind::Success,
+                        );
+                    }
+                    Err(error) => {
+                        notify(
+                            state,
+                            format!("refresh failed: {error}"),
+                            MessageKind::Error,
+                        );
+                    }
+                },
                 ScanEvent::LoadComplete(mal_id) => {
                     let hops = state.loading.as_ref().map(|l| l.hops).unwrap_or(2);
                     // The franchise is rooted at the title that was loaded, so
@@ -140,6 +159,10 @@ fn handle_effect(
                 ),
                 Err(error) => notify(state, format!("export failed: {error}"), MessageKind::Error),
             }
+        }
+        Effect::RefreshLibrary => {
+            notify(state, "refreshing your list…", MessageKind::Info);
+            spawn_library_refresh(tx, engine, state.user.clone());
         }
         Effect::Rescan => {
             let _ = engine.cache.clear_media();
@@ -231,6 +254,19 @@ fn graph_media(
             crate::infra::anilist::ResolvedMedia { anime, relations }
         })
         .collect()
+}
+
+/// Re-download the user's list, bypassing the on-disk cache.
+fn spawn_library_refresh(tx: &mpsc::UnboundedSender<ScanEvent>, engine: &Engine, user: String) {
+    let engine = engine.clone();
+    let tx = tx.clone();
+    tokio::spawn(async move {
+        let result = engine
+            .library(&user, true)
+            .await
+            .map_err(|error| error.to_string());
+        tx.send(ScanEvent::LibraryRefreshed(result)).ok();
+    });
 }
 
 fn spawn_scan(tx: &mpsc::UnboundedSender<ScanEvent>, engine: &Engine, library: Library) {

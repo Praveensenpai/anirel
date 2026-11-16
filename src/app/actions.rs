@@ -29,7 +29,8 @@ pub enum Action {
     Copy,
     Export,
     Refresh,
-    SoftRefresh,
+    /// Re-download the user's list so status changes appear immediately.
+    RefreshLibrary,
     /// Load the franchise of the selected title (lazy, on demand).
     Load,
     /// Load every franchise in the library at once.
@@ -47,7 +48,7 @@ pub fn action_for(key: KeyEvent, search_mode: bool) -> Action {
             KeyCode::Char('c') => Action::Quit,
             KeyCode::Char('n') => Action::NextView,
             KeyCode::Char('p') => Action::PrevView,
-            KeyCode::Char('r') => Action::SoftRefresh,
+            KeyCode::Char('r') => Action::RefreshLibrary,
             KeyCode::Char('l') => Action::Load,
             KeyCode::Char('u') => Action::Open,
             KeyCode::Char('y') => Action::Copy,
@@ -84,6 +85,7 @@ pub fn action_for(key: KeyEvent, search_mode: bool) -> Action {
         KeyCode::Char('c') | KeyCode::Char('C') => Action::Copy,
         KeyCode::Char('e') | KeyCode::Char('E') => Action::Export,
         KeyCode::Char('r') | KeyCode::Char('R') => Action::Refresh,
+        KeyCode::Char('f') | KeyCode::Char('F') => Action::RefreshLibrary,
         KeyCode::Char('l') | KeyCode::Char('L') => Action::Load,
         KeyCode::Char('a') | KeyCode::Char('A') => Action::ScanAll,
         KeyCode::Char('n') | KeyCode::Char('N') => Action::NextView,

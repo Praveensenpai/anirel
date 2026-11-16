@@ -15,9 +15,9 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
 
 ## 3. Module & Interface Skeleton
 
-### `src/app/actions.rs` (Role: general, Lines: 105)
+### `src/app/actions.rs` (Role: general, Lines: 107)
 - **Responsibility**: Core general logic in src/app/actions.rs
-- **Imports**: use crossterm :: event :: { KeyCode , KeyEvent , KeyModifiers } , use crate :: app :: state :: View 
+- **Imports**: use crossterm :: event :: { KeyCode , KeyEvent , KeyModifiers } , use crate :: app :: state :: View
 - **Types & Enums**:
   ```rust
   pub enum Action
@@ -29,12 +29,19 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   fn prev_view (view : View) -> View
   ```
 
-### `src/app/mod.rs` (Role: general, Lines: 6)
+### `src/app/fuzzy.rs` (Role: general, Lines: 51)
+- **Responsibility**: Core general logic in src/app/fuzzy.rs
+- **Public Functions & Signatures**:
+  ```rust
+  fn matches (title : & str , filter : & str) -> bool
+  ```
+
+### `src/app/mod.rs` (Role: general, Lines: 7)
 - **Responsibility**: Core general logic in src/app/mod.rs
 
-### `src/app/scanner.rs` (Role: general, Lines: 80)
+### `src/app/scanner.rs` (Role: general, Lines: 82)
 - **Responsibility**: Core general logic in src/app/scanner.rs
-- **Imports**: use std :: collections :: HashSet , use tokio :: sync :: mpsc :: UnboundedSender , use crate :: domain :: model :: Library , use crate :: engine :: Engine , use crate :: infra :: anilist :: { BATCH_SIZE , ResolvedMedia } 
+- **Imports**: use std :: collections :: HashSet , use tokio :: sync :: mpsc :: UnboundedSender , use crate :: domain :: model :: Library , use crate :: engine :: Engine , use crate :: infra :: anilist :: { BATCH_SIZE , ResolvedMedia }
 - **Types & Enums**:
   ```rust
   pub enum ScanEvent
@@ -44,9 +51,9 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   async fn run (engine : Engine , library : Library , tx : UnboundedSender < ScanEvent >)
   ```
 
-### `src/app/state.rs` (Role: general, Lines: 343)
+### `src/app/state.rs` (Role: general, Lines: 339)
 - **Responsibility**: Core general logic in src/app/state.rs
-- **Imports**: use crate :: config :: Scope , use crate :: domain :: cluster :: { Cluster , RelationGraph , build_clusters } , use crate :: domain :: model :: { Anime , Library , LibraryEntry } , use crate :: domain :: relation :: RelationKind 
+- **Imports**: use crate :: app :: fuzzy , use crate :: config :: Scope , use crate :: domain :: cluster :: { Cluster , RelationGraph , build_clusters } , use crate :: domain :: model :: { Anime , Library , LibraryEntry } , use crate :: domain :: relation :: RelationKind
 - **Types & Enums**:
   ```rust
   pub enum View
@@ -80,9 +87,9 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   fn library_entry (& self , mal_id : i64) -> Option < & LibraryEntry >
   ```
 
-### `src/app/update.rs` (Role: general, Lines: 170)
+### `src/app/update.rs` (Role: general, Lines: 172)
 - **Responsibility**: Core general logic in src/app/update.rs
-- **Imports**: use crate :: app :: actions :: Action , use crate :: app :: state :: { AppState , Focus , MessageKind , View } 
+- **Imports**: use crate :: app :: actions :: Action , use crate :: app :: state :: { AppState , Focus , MessageKind , View }
 - **Types & Enums**:
   ```rust
   pub enum Effect
@@ -95,7 +102,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
 
 ### `src/art.rs` (Role: general, Lines: 301)
 - **Responsibility**: Core general logic in src/art.rs
-- **Imports**: use std :: path :: PathBuf , use ratatui :: style :: Color , use crate :: error :: { AnirelError , Result } 
+- **Imports**: use std :: path :: PathBuf , use ratatui :: style :: Color , use crate :: error :: { AnirelError , Result }
 - **Types & Enums**:
   ```rust
   pub struct CoverArt
@@ -114,9 +121,9 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   fn native_image (protocol : GraphicsSupport , x : u16 , y : u16 , jpeg : & [u8]) -> Option < String >
   ```
 
-### `src/cli.rs` (Role: cli, Lines: 78)
+### `src/cli.rs` (Role: cli, Lines: 81)
 - **Responsibility**: Core cli logic in src/cli.rs
-- **Imports**: use std :: path :: PathBuf , use clap :: { Parser , Subcommand , ValueEnum } 
+- **Imports**: use std :: path :: PathBuf , use clap :: { Parser , Subcommand , ValueEnum }
 - **Types & Enums**:
   ```rust
   pub struct Cli
@@ -124,9 +131,9 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   pub enum ExportFormat
   ```
 
-### `src/commands.rs` (Role: general, Lines: 282)
+### `src/commands.rs` (Role: general, Lines: 309)
 - **Responsibility**: Core general logic in src/commands.rs
-- **Imports**: use std :: path :: Path , use crate :: cli :: { Cli , Command , ExportFormat } , use crate :: config :: Config , use crate :: domain :: cluster :: { RelationGraph , build_clusters } , use crate :: engine :: Engine , use crate :: error :: { AnirelError , Result } , use crate :: output :: { self , FranchiseReport } 
+- **Imports**: use std :: path :: Path , use crate :: cli :: { Cli , Command , ExportFormat } , use crate :: config :: Config , use crate :: domain :: cluster :: { RelationGraph , build_clusters } , use crate :: engine :: Engine , use crate :: error :: { AnirelError , Result } , use crate :: output :: { self , FranchiseReport }
 - **Public Functions & Signatures**:
   ```rust
   async fn dispatch (cli : & Cli , config : & Config) -> Result < i32 >
@@ -134,7 +141,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
 
 ### `src/config.rs` (Role: general, Lines: 90)
 - **Responsibility**: Core general logic in src/config.rs
-- **Imports**: use std :: env , use std :: path :: PathBuf , use std :: time :: Duration 
+- **Imports**: use std :: env , use std :: path :: PathBuf , use std :: time :: Duration
 - **Types & Enums**:
   ```rust
   pub struct Scope
@@ -153,7 +160,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
 
 ### `src/domain/cluster.rs` (Role: domain, Lines: 436)
 - **Responsibility**: Core domain logic in src/domain/cluster.rs
-- **Imports**: use std :: collections :: { HashMap , HashSet } , use super :: model :: { Anime , Library , LibraryEntry } , use super :: relation :: RelationKind , use super :: watch_order :: order_members 
+- **Imports**: use std :: collections :: { HashMap , HashSet } , use super :: model :: { Anime , Library , LibraryEntry } , use super :: relation :: RelationKind , use super :: watch_order :: order_members
 - **Types & Enums**:
   ```rust
   pub struct Edge
@@ -188,11 +195,11 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
 
 ### `src/domain/mod.rs` (Role: domain, Lines: 10)
 - **Responsibility**: Core domain logic in src/domain/mod.rs
-- **Imports**: pub use cluster :: { Cluster , ClusterMember , RelationGraph , build_clusters } , pub use model :: { Anime , Library , LibraryEntry , LibraryStatus } , pub use relation :: RelationKind 
+- **Imports**: pub use cluster :: { Cluster , ClusterMember , RelationGraph , build_clusters } , pub use model :: { Anime , Library , LibraryEntry , LibraryStatus } , pub use relation :: RelationKind
 
 ### `src/domain/model.rs` (Role: domain, Lines: 196)
 - **Responsibility**: Core domain logic in src/domain/model.rs
-- **Imports**: use std :: collections :: HashMap , use serde :: { Deserialize , Serialize } 
+- **Imports**: use std :: collections :: HashMap , use serde :: { Deserialize , Serialize }
 - **Types & Enums**:
   ```rust
   pub struct Anime
@@ -225,7 +232,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
 
 ### `src/domain/relation.rs` (Role: domain, Lines: 76)
 - **Responsibility**: Core domain logic in src/domain/relation.rs
-- **Imports**: use serde :: { Deserialize , Serialize } 
+- **Imports**: use serde :: { Deserialize , Serialize }
 - **Types & Enums**:
   ```rust
   pub enum RelationKind
@@ -240,7 +247,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
 
 ### `src/domain/watch_order.rs` (Role: domain, Lines: 33)
 - **Responsibility**: Core domain logic in src/domain/watch_order.rs
-- **Imports**: use super :: cluster :: RelationGraph , use super :: model :: Anime , use super :: relation :: RelationKind 
+- **Imports**: use super :: cluster :: RelationGraph , use super :: model :: Anime , use super :: relation :: RelationKind
 - **Public Functions & Signatures**:
   ```rust
   fn order_members (graph : & RelationGraph , ids : & [i64]) -> Vec < (Anime , RelationKind) >
@@ -248,7 +255,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
 
 ### `src/engine.rs` (Role: general, Lines: 208)
 - **Responsibility**: Core general logic in src/engine.rs
-- **Imports**: use std :: collections :: HashSet , use std :: path :: PathBuf , use std :: time :: Duration , use crate :: domain :: cluster :: RelationGraph , use crate :: domain :: model :: { Anime , Library } , use crate :: domain :: relation :: RelationKind , use crate :: error :: { AnirelError , Result } , use crate :: infra :: anilist :: { AniListClient , BATCH_SIZE , Media , ResolvedMedia } , use crate :: infra :: cache :: Cache , use crate :: infra :: mal_web :: MalWebClient 
+- **Imports**: use std :: collections :: HashSet , use std :: path :: PathBuf , use std :: time :: Duration , use crate :: domain :: cluster :: RelationGraph , use crate :: domain :: model :: { Anime , Library } , use crate :: domain :: relation :: RelationKind , use crate :: error :: { AnirelError , Result } , use crate :: infra :: anilist :: { AniListClient , BATCH_SIZE , Media , ResolvedMedia } , use crate :: infra :: cache :: Cache , use crate :: infra :: mal_web :: MalWebClient
 - **Types & Enums**:
   ```rust
   pub struct Engine
@@ -266,9 +273,9 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   fn kind_to_anilist (kind : RelationKind) -> & 'static str
   ```
 
-### `src/error.rs` (Role: general, Lines: 38)
+### `src/error.rs` (Role: general, Lines: 41)
 - **Responsibility**: Core general logic in src/error.rs
-- **Imports**: use thiserror :: Error 
+- **Imports**: use thiserror :: Error
 - **Types & Enums**:
   ```rust
   pub enum AnirelError
@@ -280,7 +287,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
 
 ### `src/infra/anilist.rs` (Role: infra, Lines: 349)
 - **Responsibility**: Core infra logic in src/infra/anilist.rs
-- **Imports**: use std :: time :: Duration , use serde :: { Deserialize , Serialize } , use serde_json :: { Value , json } , use crate :: domain :: model :: Anime , use crate :: domain :: relation :: RelationKind , use crate :: error :: { AnirelError , Result } 
+- **Imports**: use std :: time :: Duration , use serde :: { Deserialize , Serialize } , use serde_json :: { Value , json } , use crate :: domain :: model :: Anime , use crate :: domain :: relation :: RelationKind , use crate :: error :: { AnirelError , Result }
 - **Types & Enums**:
   ```rust
   pub struct Title
@@ -302,7 +309,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
 
 ### `src/infra/cache.rs` (Role: infra, Lines: 125)
 - **Responsibility**: Core infra logic in src/infra/cache.rs
-- **Imports**: use std :: path :: { Path , PathBuf } , use std :: time :: { Duration , SystemTime , UNIX_EPOCH } , use serde :: { Deserialize , Serialize , de :: DeserializeOwned } , use crate :: domain :: model :: { Library , LibraryEntry } , use crate :: error :: { AnirelError , Result } , use crate :: infra :: anilist :: Media 
+- **Imports**: use std :: path :: { Path , PathBuf } , use std :: time :: { Duration , SystemTime , UNIX_EPOCH } , use serde :: { Deserialize , Serialize , de :: DeserializeOwned } , use crate :: domain :: model :: { Library , LibraryEntry } , use crate :: error :: { AnirelError , Result } , use crate :: infra :: anilist :: Media
 - **Types & Enums**:
   ```rust
   pub struct Cache
@@ -319,7 +326,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
 
 ### `src/infra/mal_web.rs` (Role: infra, Lines: 414)
 - **Responsibility**: Core infra logic in src/infra/mal_web.rs
-- **Imports**: use serde :: Deserialize , use serde_json :: Value , use crate :: domain :: model :: { Anime , Library , LibraryEntry , LibraryStatus } , use crate :: domain :: relation :: RelationKind , use crate :: error :: { AnirelError , Result } 
+- **Imports**: use serde :: Deserialize , use serde_json :: Value , use crate :: domain :: model :: { Anime , Library , LibraryEntry , LibraryStatus } , use crate :: domain :: relation :: RelationKind , use crate :: error :: { AnirelError , Result }
 - **Types & Enums**:
   ```rust
   pub struct MalWebClient
@@ -333,20 +340,34 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   fn parse_related_entries (html : & str) -> Vec < (i64 , RelationKind) >
   ```
 
-### `src/infra/mod.rs` (Role: infra, Lines: 5)
+### `src/infra/mod.rs` (Role: infra, Lines: 6)
 - **Responsibility**: Core infra logic in src/infra/mod.rs
+
+### `src/infra/update.rs` (Role: infra, Lines: 313)
+- **Responsibility**: Core infra logic in src/infra/update.rs
+- **Imports**: use std :: fmt :: Write as _ , use std :: io :: Read as _ , use std :: path :: { Path , PathBuf } , use reqwest :: header :: { ACCEPT , USER_AGENT } , use serde :: Deserialize , use sha2 :: { Digest as _ , Sha256 } , use crate :: error :: { AnirelError , Result }
+- **Types & Enums**:
+  ```rust
+  pub enum Decision
+  pub struct UpdateReport
+  ```
+- **Public Functions & Signatures**:
+  ```rust
+  fn decide (current : & str , latest : & str) -> Decision
+  async fn run () -> Result < UpdateReport >
+  ```
 
 ### `src/lib.rs` (Role: general, Lines: 17)
 - **Responsibility**: Core general logic in src/lib.rs
-- **Imports**: pub use error :: { AnirelError , Result } 
+- **Imports**: pub use error :: { AnirelError , Result }
 
 ### `src/main.rs` (Role: general, Lines: 54)
 - **Responsibility**: Core general logic in src/main.rs
-- **Imports**: use anirel :: cli :: Cli , use anirel :: config :: { self , Config } , use anirel :: sys , use clap :: Parser 
+- **Imports**: use anirel :: cli :: Cli , use anirel :: config :: { self , Config } , use anirel :: sys , use clap :: Parser
 
 ### `src/output.rs` (Role: general, Lines: 393)
 - **Responsibility**: Core general logic in src/output.rs
-- **Imports**: use serde_json :: { Value , json } , use unicode_width :: UnicodeWidthStr , use crate :: domain :: cluster :: Cluster , use crate :: domain :: model :: Library 
+- **Imports**: use serde_json :: { Value , json } , use unicode_width :: UnicodeWidthStr , use crate :: domain :: cluster :: Cluster , use crate :: domain :: model :: Library
 - **Types & Enums**:
   ```rust
   pub struct MemberInfo
@@ -372,7 +393,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
 
 ### `src/sys.rs` (Role: general, Lines: 95)
 - **Responsibility**: Core general logic in src/sys.rs
-- **Imports**: use std :: io :: { IsTerminal , Write } , use std :: process :: { Command , Stdio } 
+- **Imports**: use std :: io :: { IsTerminal , Write } , use std :: process :: { Command , Stdio }
 - **Public Functions & Signatures**:
   ```rust
   fn open_in_browser (url : & str) -> Result < () , String >
@@ -381,17 +402,17 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   fn color_enabled () -> bool
   ```
 
-### `src/tui.rs` (Role: tui, Lines: 254)
+### `src/tui.rs` (Role: tui, Lines: 290)
 - **Responsibility**: Core tui logic in src/tui.rs
-- **Imports**: use std :: io :: Stdout , use std :: time :: Duration , use crossterm :: event :: { self , Event , KeyEventKind } , use ratatui :: Terminal , use ratatui :: backend :: CrosstermBackend , use tokio :: sync :: mpsc , use crate :: app :: actions :: action_for , use crate :: app :: scanner :: { self , ScanEvent } , use crate :: app :: state :: { AppState , Loading , MessageKind } , use crate :: app :: update :: { Effect , apply , notify } , use crate :: config :: Config , use crate :: domain :: model :: Library , use crate :: engine :: Engine , use crate :: output :: { self , FranchiseReport } , use crate :: sys 
+- **Imports**: use std :: io :: Stdout , use std :: time :: Duration , use crossterm :: event :: { self , Event , KeyEventKind } , use ratatui :: Terminal , use ratatui :: backend :: CrosstermBackend , use tokio :: sync :: mpsc , use crate :: app :: actions :: action_for , use crate :: app :: scanner :: { self , ScanEvent } , use crate :: app :: state :: { AppState , Loading , MessageKind } , use crate :: app :: update :: { Effect , apply , notify } , use crate :: config :: Config , use crate :: domain :: model :: Library , use crate :: engine :: Engine , use crate :: output :: { self , FranchiseReport } , use crate :: sys
 - **Public Functions & Signatures**:
   ```rust
   async fn run (config : Config , library : Library , engine : Engine) -> anyhow :: Result < () >
   ```
 
-### `src/ui/chrome.rs` (Role: tui, Lines: 157)
+### `src/ui/chrome.rs` (Role: tui, Lines: 158)
 - **Responsibility**: Core tui logic in src/ui/chrome.rs
-- **Imports**: use ratatui :: prelude :: * , use ratatui :: widgets :: Paragraph , use crate :: app :: state :: { AppState , View } , use crate :: ui :: theme :: Theme 
+- **Imports**: use ratatui :: prelude :: * , use ratatui :: widgets :: Paragraph , use crate :: app :: state :: { AppState , View } , use crate :: ui :: theme :: Theme
 - **Public Functions & Signatures**:
   ```rust
   fn render_header (f : & mut Frame , area : Rect , state : & AppState)
@@ -399,9 +420,9 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   fn render_footer (f : & mut Frame , area : Rect , state : & AppState)
   ```
 
-### `src/ui/help.rs` (Role: tui, Lines: 57)
+### `src/ui/help.rs` (Role: tui, Lines: 58)
 - **Responsibility**: Core tui logic in src/ui/help.rs
-- **Imports**: use ratatui :: prelude :: * , use ratatui :: widgets :: { Block , BorderType , Borders , Clear , Paragraph , Wrap } , use crate :: ui :: theme :: Theme 
+- **Imports**: use ratatui :: prelude :: * , use ratatui :: widgets :: { Block , BorderType , Borders , Clear , Paragraph , Wrap } , use crate :: ui :: theme :: Theme
 - **Public Functions & Signatures**:
   ```rust
   fn render_help (f : & mut Frame , area : Rect)
@@ -409,7 +430,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
 
 ### `src/ui/mod.rs` (Role: tui, Lines: 87)
 - **Responsibility**: Core tui logic in src/ui/mod.rs
-- **Imports**: use ratatui :: Frame , use ratatui :: prelude :: * , use ratatui :: widgets :: { Paragraph , Wrap } , use crate :: app :: state :: AppState , use crate :: ui :: theme :: Theme 
+- **Imports**: use ratatui :: Frame , use ratatui :: prelude :: * , use ratatui :: widgets :: { Paragraph , Wrap } , use crate :: app :: state :: AppState , use crate :: ui :: theme :: Theme
 - **Public Functions & Signatures**:
   ```rust
   fn draw (f : & mut Frame , state : & AppState)
@@ -417,7 +438,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
 
 ### `src/ui/panes.rs` (Role: tui, Lines: 386)
 - **Responsibility**: Core tui logic in src/ui/panes.rs
-- **Imports**: use ratatui :: prelude :: * , use ratatui :: widgets :: { Gauge , List , ListItem , ListState , Paragraph , Wrap } , use unicode_width :: UnicodeWidthStr , use crate :: app :: state :: { AppState , Focus , Row , View } , use crate :: domain :: model :: LibraryStatus , use crate :: ui :: theme :: Theme , use crate :: ui :: widgets :: { fit , fit_title , panel } 
+- **Imports**: use ratatui :: prelude :: * , use ratatui :: widgets :: { Gauge , List , ListItem , ListState , Paragraph , Wrap } , use unicode_width :: UnicodeWidthStr , use crate :: app :: state :: { AppState , Focus , Row , View } , use crate :: domain :: model :: LibraryStatus , use crate :: ui :: theme :: Theme , use crate :: ui :: widgets :: { fit , fit_title , panel }
 - **Public Functions & Signatures**:
   ```rust
   fn render_list (f : & mut Frame , area : Rect , state : & AppState)
@@ -426,7 +447,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
 
 ### `src/ui/poster.rs` (Role: tui, Lines: 224)
 - **Responsibility**: Core tui logic in src/ui/poster.rs
-- **Imports**: use ratatui :: prelude :: * , use ratatui :: widgets :: { Paragraph , Wrap } , use unicode_width :: UnicodeWidthStr , use crate :: app :: state :: { AppState , Focus } , use crate :: ui :: theme :: Theme , use crate :: ui :: widgets :: { fit , panel } 
+- **Imports**: use ratatui :: prelude :: * , use ratatui :: widgets :: { Paragraph , Wrap } , use unicode_width :: UnicodeWidthStr , use crate :: app :: state :: { AppState , Focus } , use crate :: ui :: theme :: Theme , use crate :: ui :: widgets :: { fit , panel }
 - **Public Functions & Signatures**:
   ```rust
   fn render_poster (f : & mut Frame , area : Rect , state : & AppState)
@@ -438,7 +459,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
 
 ### `src/ui/theme.rs` (Role: tui, Lines: 63)
 - **Responsibility**: Core tui logic in src/ui/theme.rs
-- **Imports**: use ratatui :: style :: { Color , Modifier , Style } 
+- **Imports**: use ratatui :: style :: { Color , Modifier , Style }
 - **Types & Enums**:
   ```rust
   pub struct Theme
@@ -458,7 +479,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
 
 ### `src/ui/widgets.rs` (Role: tui, Lines: 56)
 - **Responsibility**: Core tui logic in src/ui/widgets.rs
-- **Imports**: use ratatui :: prelude :: * , use ratatui :: widgets :: { Block , BorderType , Borders } , use unicode_width :: { UnicodeWidthChar , UnicodeWidthStr } , use crate :: ui :: theme :: Theme 
+- **Imports**: use ratatui :: prelude :: * , use ratatui :: widgets :: { Block , BorderType , Borders } , use unicode_width :: { UnicodeWidthChar , UnicodeWidthStr } , use crate :: ui :: theme :: Theme
 - **Public Functions & Signatures**:
   ```rust
   fn panel (title : & str , focused : bool) -> Block < 'static >

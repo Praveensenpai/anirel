@@ -10,6 +10,8 @@ pub enum Effect {
     Copy(String),
     Export,
     Rescan,
+    /// Re-download the user's list, bypassing the library cache.
+    RefreshLibrary,
     /// Fetch the relations of one title, `hops` levels deep.
     Load {
         mal_id: i64,
@@ -115,7 +117,7 @@ pub fn apply(state: &mut AppState, action: Action) -> Option<Effect> {
         Action::Copy => state.focus_target().map(|anime| Effect::Copy(anime.url())),
         Action::Export => Some(Effect::Export),
         Action::Refresh => Some(Effect::Rescan),
-        Action::SoftRefresh => None,
+        Action::RefreshLibrary => Some(Effect::RefreshLibrary),
         Action::Load => {
             // From the library you want the whole franchise; diving into a
             // related title you want that title's own neighbourhood.

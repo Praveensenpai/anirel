@@ -63,7 +63,7 @@ cd anirel && cargo install --path .
 - **📋 Poster card** — title, facts and the franchise completion bar at a glance, with no cover images to render
 - **🔀 Dive anywhere** — press `L` on a side story; the pane follows its subtree
 - **🧭 Release-date watch order** — sorted by air date, relation edges only label the entries
-- **🔎 Both titles matched** — search finds entries by original *and* English title
+- **🔎 Fuzzy search** — `yurcamp` and `yorucamp` both find *Yuru Camp*; original, English and Japanese titles all searched
 - **📦 Stable `--json`** — every command speaks machine-readable output
 - **🧹 Text-only rendering** — clean output on any terminal, including ones that cannot display images
 
@@ -74,6 +74,8 @@ cd anirel && cargo install --path .
 | Key | Action |
 |---|---|
 | `L` | load the franchise of the highlighted title |
+| `F` / `ctrl+r` | force-refresh your list from MyAnimeList (picks up watch → watched) |
+| `r` | rescan relations |
 | `o` / `Enter` | open it on MyAnimeList |
 | `/` | filter (both titles) |
 | `1` / `2` | library / missing view |
@@ -90,6 +92,8 @@ anirel                      # open the TUI
 anirel related "Yuru Camp"  # everything related to one title
 anirel gaps                 # every related entry missing from your library
 anirel --json gaps | jq .total_missing
+anirel update               # update only when a newer release exists
+anirel --json update        # same check, machine-readable result
 ```
 
 In Yuru Camp's case: **8 of 10 owned** — Room Camp, Room Camp: Saunas and Grub, Season 2 Specials and Season 4 are the gaps.

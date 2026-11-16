@@ -1,9 +1,12 @@
 //! Snapshot test for the TUI rendering.
 
+use anirel::app::actions::{Action, action_for};
 use anirel::app::state::{AppState, Focus, Row, View};
+use anirel::app::update::{Effect, apply};
 use anirel::config::Scope;
 use anirel::domain::model::{Anime, Library, LibraryEntry, LibraryStatus};
 use anirel::domain::relation::RelationKind;
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use ratatui::Terminal;
 use ratatui::backend::TestBackend;
 
@@ -215,4 +218,34 @@ fn the_library_rows_are_indexed_correctly_after_sorting() {
     };
     let entry = state.library.entries.get(index).expect("the entry");
     assert_eq!(entry.anime.title, "Heya Camp", "rows are sorted by title");
+}
+
+#[test]
+fn a_typoed_filter_still_narrows_the_library() {
+    let mut state = loaded_state();
+    state.set_filter("yorucamp".into());
+    let rows = state.rows();
+    assert_eq!(rows.len(), 1, "only Yuru Camp matches:\n{rows:?}");
+    assert_eq!(
+        state.current_anime().map(|anime| anime.mal_id),
+        Some(1),
+        "the fuzzy match selects Yuru Camp"
+    );
+}
+
+#[test]
+fn the_force_refresh_keys_request_a_library_refresh() {
+    let f = action_for(KeyEvent::new(KeyCode::Char('f'), KeyModifiers::NONE), false);
+    let ctrl_r = action_for(
+        KeyEvent::new(KeyCode::Char('r'), KeyModifiers::CONTROL),
+        false,
+    );
+    assert_eq!(f, Action::RefreshLibrary);
+    assert_eq!(ctrl_r, Action::RefreshLibrary);
+
+    let mut state = loaded_state();
+    assert_eq!(
+        apply(&mut state, Action::RefreshLibrary),
+        Some(Effect::RefreshLibrary)
+    );
 }

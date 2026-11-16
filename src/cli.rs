@@ -69,6 +69,9 @@ pub enum Command {
         /// Title to search for.
         query: String,
     },
+
+    /// Check for a newer release and update the binary if needed.
+    Update,
 }
 
 #[derive(ValueEnum, Clone, Copy, Debug)]

@@ -19,6 +19,9 @@ pub enum AnirelError {
     #[error("cache problem: {0}")]
     Cache(String),
 
+    #[error("update failed: {0}")]
+    Update(String),
+
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),
 

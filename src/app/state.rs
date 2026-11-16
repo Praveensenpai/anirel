@@ -1,5 +1,6 @@
 //! Application state and pure state transitions.
 
+use crate::app::fuzzy;
 use crate::config::Scope;
 use crate::domain::cluster::{Cluster, RelationGraph, build_clusters};
 use crate::domain::model::{Anime, Library, LibraryEntry};
@@ -99,20 +100,15 @@ pub struct AppState {
 
 /// Does a title match the filter? Original romaji, English or Japanese title.
 fn matches_filter(anime: &Anime, filter: &str) -> bool {
-    if anime.title.to_lowercase().contains(filter) {
-        return true;
-    }
-    if anime
-        .title_english
-        .as_deref()
-        .is_some_and(|english| english.to_lowercase().contains(filter))
-    {
-        return true;
-    }
-    anime
-        .title_japanese
-        .as_deref()
-        .is_some_and(|japanese| japanese.to_lowercase().contains(filter))
+    fuzzy::matches(&anime.title, filter)
+        || anime
+            .title_english
+            .as_deref()
+            .is_some_and(|title| fuzzy::matches(title, filter))
+        || anime
+            .title_japanese
+            .as_deref()
+            .is_some_and(|title| fuzzy::matches(title, filter))
 }
 
 impl AppState {

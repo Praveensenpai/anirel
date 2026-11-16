@@ -25,7 +25,8 @@ pub fn render_help(f: &mut Frame, area: Rect) {
         ("o / enter", "open on MyAnimeList"),
         ("c", "copy link"),
         ("e", "export report"),
-        ("r", "rescan library"),
+        ("F / ctrl+r", "refresh list from MyAnimeList"),
+        ("r", "rescan relations"),
         ("?", "close this help"),
         ("q / ctrl+c", "quit"),
     ];

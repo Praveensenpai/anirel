@@ -24,6 +24,7 @@ pub async fn dispatch(cli: &Cli, config: &Config) -> Result<i32> {
         Some(Command::Gaps { watched_only }) => gaps(cli, config, *watched_only).await,
         Some(Command::Export { format, output }) => export(cli, config, *format, output).await,
         Some(Command::Search { query }) => search(cli, query).await,
+        Some(Command::Update) => update(cli).await,
         None => {
             if crate::sys::stdout_is_tty() {
                 crate::tui::run(
@@ -243,6 +244,32 @@ async fn search(cli: &Cli, query: &str) -> Result<i32> {
                 anime.airing_status
             );
         }
+    }
+    Ok(0)
+}
+
+/// `anirel update`
+async fn update(cli: &Cli) -> Result<i32> {
+    let report = crate::infra::update::run().await?;
+    if cli.json {
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&serde_json::json!({
+                "current": report.current,
+                "latest": report.latest,
+                "updated": report.updated,
+            }))
+            .unwrap_or_default()
+        );
+    } else if report.updated {
+        println!("updated anirel {} → {}", report.current, report.latest);
+    } else if report.current == report.latest {
+        println!("anirel {} is up to date", report.current);
+    } else {
+        println!(
+            "anirel {} is newer than the latest release ({})",
+            report.current, report.latest
+        );
     }
     Ok(0)
 }
