@@ -25,6 +25,8 @@ pub enum ScanEvent {
     LoadComplete(i64),
     /// The user's list was re-downloaded, or the attempt failed.
     LibraryRefreshed(Result<Library, String>),
+    /// Incremental progress while fetching the user's list (count of entries so far).
+    LibraryFetchProgress(usize),
 }
 
 /// How many relation hops beyond the library to follow.

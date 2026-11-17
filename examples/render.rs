@@ -17,6 +17,7 @@ fn anime(mal_id: i64, title: &str, english: &str, year: i32, format: &str, eps: 
         title_japanese: None,
         format: format.into(),
         episodes: Some(eps),
+        duration: None,
         airing_status: "Finished Airing".into(),
         year: Some(year),
         aired_from: Some((year, 1, 1)),

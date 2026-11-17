@@ -42,6 +42,7 @@ pub struct UpdateReport {
     pub current: String,
     pub latest: String,
     pub updated: bool,
+    pub target: Option<PathBuf>,
 }
 
 /// Compare dotted versions; missing components count as zero.
@@ -73,23 +74,38 @@ fn components(version: &str) -> Vec<u64> {
         .collect()
 }
 
-/// Check for a newer release and install it only when versions differ.
-pub async fn run() -> Result<UpdateReport> {
+/// Check for a newer release and install it only when versions differ or forced.
+pub async fn run(force: bool) -> Result<UpdateReport> {
+    run_with_progress(force, |_| {}).await
+}
+
+/// Check for a newer release and stream status messages.
+pub async fn run_with_progress<F>(force: bool, mut on_status: F) -> Result<UpdateReport>
+where
+    F: FnMut(&str),
+{
+    on_status("Checking for latest release from GitHub (Praveensenpai/anirel)...");
     let client = reqwest::Client::new();
     let release = fetch_release(&client).await?;
     let latest = release.tag_name.trim_start_matches(['v', 'V']).to_string();
     let current = env!("CARGO_PKG_VERSION").to_string();
 
+    let target = std::env::current_exe().ok();
     let mut report = UpdateReport {
         current,
         latest,
         updated: false,
+        target,
     };
-    if decide(&report.current, &report.latest) != Decision::Upgrade {
+    let needs_upgrade = force || decide(&report.current, &report.latest) == Decision::Upgrade;
+    if !needs_upgrade {
         return Ok(report);
     }
 
+    on_status(&format!("Downloading release archive {ARCHIVE_NAME}..."));
     let archive = download(&client, asset_url(&release, ARCHIVE_NAME)?).await?;
+
+    on_status("Verifying SHA-256 checksum...");
     let checksum = download(&client, asset_url(&release, CHECKSUM_NAME)?).await?;
     let expected = expected_hash(&String::from_utf8_lossy(&checksum))?;
     let actual = sha256_hex(&archive);
@@ -98,8 +114,16 @@ pub async fn run() -> Result<UpdateReport> {
             "checksum mismatch for {ARCHIVE_NAME}: expected {expected}, got {actual}"
         )));
     }
+
+    on_status("Extracting binary...");
     let binary = extract_binary(&archive)?;
-    install(&binary, &std::env::current_exe()?)?;
+
+    let target_path = report
+        .target
+        .clone()
+        .ok_or_else(|| AnirelError::Update("could not determine current binary path".into()))?;
+    on_status(&format!("Installing to {}...", target_path.display()));
+    install(&binary, &target_path)?;
     report.updated = true;
     Ok(report)
 }

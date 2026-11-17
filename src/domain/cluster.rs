@@ -99,6 +99,33 @@ impl ClusterMember {
     pub fn needs_action(&self) -> bool {
         self.is_missing() || self.is_unwatched()
     }
+
+    pub fn total_duration_minutes(&self) -> Option<i64> {
+        self.anime.total_duration_minutes()
+    }
+
+    pub fn watched_duration_minutes(&self) -> i64 {
+        let ep_dur = self.anime.episode_duration_minutes();
+        if let Some(entry) = &self.entry {
+            if entry.status.is_completed() {
+                self.anime
+                    .episodes
+                    .unwrap_or(entry.episodes_watched)
+                    .max(entry.episodes_watched)
+                    * ep_dur
+            } else {
+                entry.episodes_watched * ep_dur
+            }
+        } else {
+            0
+        }
+    }
+
+    pub fn left_duration_minutes(&self) -> i64 {
+        let total = self.total_duration_minutes().unwrap_or(0);
+        let watched = self.watched_duration_minutes();
+        total.saturating_sub(watched)
+    }
 }
 
 /// A franchise: the root title plus every related title we found.
@@ -135,6 +162,27 @@ impl Cluster {
 
     pub fn member_ids(&self) -> Vec<i64> {
         self.members.iter().map(|m| m.anime.mal_id).collect()
+    }
+
+    pub fn total_duration_minutes(&self) -> i64 {
+        self.members
+            .iter()
+            .filter_map(|m| m.total_duration_minutes())
+            .sum()
+    }
+
+    pub fn watched_duration_minutes(&self) -> i64 {
+        self.members
+            .iter()
+            .map(|m| m.watched_duration_minutes())
+            .sum()
+    }
+
+    pub fn left_duration_minutes(&self) -> i64 {
+        self.members
+            .iter()
+            .map(|m| m.left_duration_minutes())
+            .sum()
     }
 }
 

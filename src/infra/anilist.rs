@@ -23,9 +23,9 @@ pub const REQUEST_PAUSE: Duration = Duration::from_millis(2200);
 ///
 /// Relation nodes only carry the fields needed to recognise them as anime;
 /// their full metadata is fetched when they are resolved on their own.
-const MEDIA_FIELDS: &str = "id idMal title { romaji english native } format episodes status \
+const MEDIA_FIELDS: &str = "id idMal title { romaji english native } format episodes duration status \
      startDate { year month day } averageScore coverImage { large } \
-     relations { edges { relationType node { idMal title { romaji english native } format } } }";
+     relations { edges { relationType node { idMal title { romaji english native } format episodes duration } } }";
 
 #[derive(Debug, Clone, Default, Serialize, Deserialize)]
 pub struct Title {
@@ -83,6 +83,8 @@ pub struct Media {
     #[serde(default)]
     pub episodes: Option<i64>,
     #[serde(default)]
+    pub duration: Option<i64>,
+    #[serde(default)]
     pub status: Option<String>,
     #[serde(rename = "startDate", default)]
     pub start_date: Option<FuzzyDate>,
@@ -127,6 +129,7 @@ impl Media {
             title_japanese: self.title.native.clone(),
             format,
             episodes: self.episodes,
+            duration: self.duration,
             airing_status: airing_status(self.status.as_deref()),
             year: self.start_date.as_ref().and_then(|d| d.year),
             aired_from,

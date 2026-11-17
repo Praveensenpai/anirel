@@ -33,11 +33,24 @@ impl Engine {
 
     /// Load the user's library, preferring a warm cache.
     pub async fn library(&self, user: &str, force_refresh: bool) -> Result<Library> {
+        self.library_with_progress(user, force_refresh, |_| {}).await
+    }
+
+    /// Load the user's library, preferring a warm cache, and report progress if fetching.
+    pub async fn library_with_progress<F>(
+        &self,
+        user: &str,
+        force_refresh: bool,
+        on_progress: F,
+    ) -> Result<Library>
+    where
+        F: FnMut(usize),
+    {
         if !force_refresh && let Some(library) = self.cache.read_library(user, self.library_ttl) {
             return Ok(library);
         }
         let client = MalWebClient::new();
-        let library = client.fetch_library(user).await?;
+        let library = client.fetch_library_with_progress(user, on_progress).await?;
         let _ = self.cache.write_library(user, &library);
         Ok(library)
     }
@@ -190,19 +203,4 @@ pub async fn search_titles(query: &str) -> Result<Vec<Anime>> {
         })
 }
 
-/// Map an internal relation kind back to the AniList spelling.
-#[allow(dead_code)]
-pub fn kind_to_anilist(kind: RelationKind) -> &'static str {
-    match kind {
-        RelationKind::Prequel => "PREQUEL",
-        RelationKind::Sequel => "SEQUEL",
-        RelationKind::SideStory => "SIDE_STORY",
-        RelationKind::Parent => "PARENT",
-        RelationKind::SpinOff => "SPIN_OFF",
-        RelationKind::Summary => "SUMMARY",
-        RelationKind::Alternative => "ALTERNATIVE",
-        RelationKind::Character => "CHARACTER",
-        RelationKind::Adaptation => "ADAPTATION",
-        RelationKind::Other => "OTHER",
-    }
-}
+

@@ -97,6 +97,9 @@ pub fn render_poster(f: &mut Frame, area: Rect, state: &AppState) {
         Some(episodes) => format!("{episodes} ep"),
         None => "?".into(),
     });
+    if let Some(dur) = anime.format_total_duration() {
+        facts.push(dur);
+    }
     facts.push(
         anime
             .year
@@ -150,6 +153,23 @@ pub fn render_poster(f: &mut Frame, area: Rect, state: &AppState) {
         );
         f.render_widget(
             Paragraph::new(Line::from(Span::styled(summary, Theme::missing()))),
+            Rect {
+                x: inner.x,
+                y,
+                width: inner.width,
+                height: 1,
+            },
+        );
+        y += 1;
+
+        let dur_summary = format!(
+            "{} total · {} watched · {} left",
+            crate::domain::model::format_duration(cluster.total_duration_minutes()),
+            crate::domain::model::format_duration(cluster.watched_duration_minutes()),
+            crate::domain::model::format_duration(cluster.left_duration_minutes()),
+        );
+        f.render_widget(
+            Paragraph::new(Line::from(Span::styled(dur_summary, Theme::accent()))),
             Rect {
                 x: inner.x,
                 y,

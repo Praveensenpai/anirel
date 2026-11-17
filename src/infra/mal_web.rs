@@ -30,6 +30,18 @@ impl MalWebClient {
 
     /// Fetch every entry of a user's list.
     pub async fn fetch_library(&self, user: &str) -> Result<Library> {
+        self.fetch_library_with_progress(user, |_| {}).await
+    }
+
+    /// Fetch every entry of a user's list, invoking `on_progress(count)` as batches arrive.
+    pub async fn fetch_library_with_progress<F>(
+        &self,
+        user: &str,
+        mut on_progress: F,
+    ) -> Result<Library>
+    where
+        F: FnMut(usize),
+    {
         let mut entries: Vec<LibraryEntry> = Vec::new();
         let mut offset = 0usize;
 
@@ -47,6 +59,7 @@ impl MalWebClient {
 
             let (raw_count, page) = parse_list_items(&html);
             entries.extend(page);
+            on_progress(entries.len());
             if raw_count == 0 {
                 break;
             }
@@ -172,6 +185,7 @@ fn parse_list_items(html: &str) -> (usize, Vec<LibraryEntry>) {
                         .unwrap_or("TV")
                         .to_string(),
                     episodes: raw.anime_num_episodes,
+                    duration: None,
                     airing_status: airing_status(raw.anime_airing_status),
                     year: parse_year(raw.anime_start_date_string.as_deref()),
                     aired_from: parse_date(raw.anime_start_date_string.as_deref()),

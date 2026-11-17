@@ -217,12 +217,16 @@ pub fn render_detail(f: &mut Frame, area: Rect, state: &AppState) {
     };
 
     let mut items: Vec<ListItem> = Vec::new();
+    let total_dur = cluster.total_duration_minutes();
+    let watched_dur = cluster.watched_duration_minutes();
+    let left_dur = cluster.left_duration_minutes();
+
     let mut summary = vec![
         Span::styled(
             format!("{}/{} owned", cluster.owned_count(), cluster.total_count()),
             Theme::muted(),
         ),
-        Span::styled("  ·  ", Theme::muted()),
+        Span::styled(" · ", Theme::muted()),
         Span::styled(
             format!("{} missing", cluster.missing_count()),
             if cluster.missing_count() == 0 {
@@ -232,8 +236,20 @@ pub fn render_detail(f: &mut Frame, area: Rect, state: &AppState) {
             },
         ),
     ];
+    if total_dur > 0 {
+        summary.push(Span::styled(" · ", Theme::muted()));
+        summary.push(Span::styled(
+            format!(
+                "{} total ({} watched · {} left)",
+                crate::domain::model::format_duration(total_dur),
+                crate::domain::model::format_duration(watched_dur),
+                crate::domain::model::format_duration(left_dur)
+            ),
+            Theme::accent(),
+        ));
+    }
     if let Some(score) = cluster.best_score {
-        summary.push(Span::styled("  ·  ", Theme::muted()));
+        summary.push(Span::styled(" · ", Theme::muted()));
         summary.push(Span::styled(format!("your score {score}"), Theme::warn()));
     }
     items.push(ListItem::new(Line::from(summary)));
@@ -275,6 +291,11 @@ pub fn render_detail(f: &mut Frame, area: Rect, state: &AppState) {
                 .map(|y| y.to_string())
                 .unwrap_or_else(|| "?".to_string()),
         ];
+        if inner.width >= 54
+            && let Some(dur) = member.anime.format_total_duration()
+        {
+            meta.push(dur);
+        }
         if !member.anime.is_aired() {
             meta.push("not aired".into());
         }
@@ -298,6 +319,10 @@ pub fn render_detail(f: &mut Frame, area: Rect, state: &AppState) {
         {
             sub.push_str(&format!(" · score {}", entry.score));
         }
+
+        if let Some(dur_stats) = format_member_duration_stats(member) {
+            sub.push_str(&dur_stats);
+        }
         items.push(ListItem::new(Line::from(vec![
             Span::raw("    "),
             Span::styled(sub, Theme::muted()),
@@ -306,6 +331,34 @@ pub fn render_detail(f: &mut Frame, area: Rect, state: &AppState) {
 
     let mut list_state = ListState::default().with_selected(Some(state.member_selected * 2 + 2));
     f.render_stateful_widget(List::new(items), inner, &mut list_state);
+}
+
+fn format_member_duration_stats(
+    member: &crate::domain::cluster::ClusterMember,
+) -> Option<String> {
+    let total = member.anime.format_total_duration()?;
+    let watched = member.watched_duration_minutes();
+    let left = member.left_duration_minutes();
+    let stats = if watched > 0 && left > 0 {
+        format!(
+            " · {total} total ({} watched · {} left)",
+            crate::domain::model::format_duration(watched),
+            crate::domain::model::format_duration(left)
+        )
+    } else if watched > 0 {
+        format!(
+            " · {total} total ({} watched)",
+            crate::domain::model::format_duration(watched)
+        )
+    } else if left > 0 {
+        format!(
+            " · {total} total ({} left)",
+            crate::domain::model::format_duration(left)
+        )
+    } else {
+        format!(" · {total} total")
+    };
+    Some(stats)
 }
 
 /// The selected title has not been loaded yet.

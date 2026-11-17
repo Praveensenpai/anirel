@@ -9,6 +9,7 @@ use crate::ui::theme::Theme;
 
 pub mod chrome;
 pub mod help;
+pub mod loading;
 pub mod panes;
 pub mod poster;
 pub mod theme;
@@ -42,7 +43,9 @@ pub fn draw(f: &mut Frame, state: &AppState) {
 
     chrome::render_footer(f, layout[3], state);
 
-    if state.show_help {
+    if state.initial_loading.is_some() {
+        loading::render_loading(f, area, state);
+    } else if state.show_help {
         help::render_help(f, area);
     }
 }

@@ -14,6 +14,8 @@ pub struct Anime {
     pub title_japanese: Option<String>,
     pub format: String,
     pub episodes: Option<i64>,
+    #[serde(default)]
+    pub duration: Option<i64>,
     pub airing_status: String,
     pub year: Option<i32>,
     /// Precise release date, when known.
@@ -77,6 +79,55 @@ impl Anime {
             "ONA" => 5,
             _ => 6,
         }
+    }
+
+    /// Return episode runtime in minutes, falling back to typical format averages.
+    pub fn episode_duration_minutes(&self) -> i64 {
+        if let Some(dur) = self.duration
+            && dur > 0
+        {
+            return dur;
+        }
+        match self.format.as_str() {
+            "TV" => 24,
+            "TV_SHORT" => 4,
+            "MOVIE" => 100,
+            "OVA" => 30,
+            "SPECIAL" => 15,
+            "ONA" => 15,
+            "MUSIC" => 4,
+            _ => 24,
+        }
+    }
+
+    /// Total runtime in minutes for all known episodes.
+    pub fn total_duration_minutes(&self) -> Option<i64> {
+        let ep = self.episodes?;
+        if ep <= 0 {
+            return None;
+        }
+        Some(ep * self.episode_duration_minutes())
+    }
+
+    /// Formatted total duration, e.g. "4h 48m", "1h 40m", or "24m".
+    pub fn format_total_duration(&self) -> Option<String> {
+        self.total_duration_minutes().map(format_duration)
+    }
+}
+
+/// Format minutes into human-readable duration (e.g. "4h 48m", "2h", "45m").
+pub fn format_duration(minutes: i64) -> String {
+    if minutes <= 0 {
+        return "0m".to_string();
+    }
+    let hours = minutes / 60;
+    let mins = minutes % 60;
+    if hours == 0 {
+        format!("{mins}m")
+    } else if mins == 0 {
+        format!("{hours}h")
+    } else {
+        format!("{hours}h {mins}m")
     }
 }
 

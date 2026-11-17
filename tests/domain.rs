@@ -12,6 +12,7 @@ fn anime(mal_id: i64, title: &str, year: i32, format: &str) -> Anime {
         title_japanese: None,
         format: format.into(),
         episodes: Some(12),
+        duration: None,
         airing_status: "Finished Airing".into(),
         year: Some(year),
         aired_from: Some((year, 1, 1)),
@@ -179,4 +180,59 @@ fn anime_title_prefers_romaji_and_exposes_english_and_japanese() {
     assert_eq!(item.romaji_title(), "Yuru Camp△");
     assert_eq!(item.english_title(), Some("Laid-Back Camp"));
     assert_eq!(item.japanese_title(), Some("ゆるキャン△"));
+}
+
+#[test]
+fn duration_calculations_and_formatting() {
+    use anirel::domain::model::format_duration;
+
+    assert_eq!(format_duration(0), "0m");
+    assert_eq!(format_duration(24), "24m");
+    assert_eq!(format_duration(60), "1h");
+    assert_eq!(format_duration(120), "2h");
+    assert_eq!(format_duration(140), "2h 20m");
+    assert_eq!(format_duration(288), "4h 48m");
+
+    let mut tv = anime(1, "TV Show", 2020, "TV");
+    tv.episodes = Some(12);
+    tv.duration = Some(24);
+    assert_eq!(tv.total_duration_minutes(), Some(288));
+    assert_eq!(tv.format_total_duration(), Some("4h 48m".into()));
+
+    let mut movie = anime(2, "Movie", 2021, "MOVIE");
+    movie.episodes = Some(1);
+    movie.duration = None; // falls back to 100m for movie
+    assert_eq!(movie.total_duration_minutes(), Some(100));
+    assert_eq!(movie.format_total_duration(), Some("1h 40m".into()));
+}
+
+#[test]
+fn franchise_total_watched_and_left_durations() {
+    let graph = camp_graph();
+    let library = Library::new(vec![
+        // Completed 12 ep of 12 ep (288m)
+        entry(1, "Camp", 2018),
+        // Watching 6 ep of 12 ep (144m watched, 144m left)
+        LibraryEntry {
+            anime: anime(2, "Camp Season 2", 2021, "TV"),
+            status: LibraryStatus::Watching,
+            score: 9,
+            episodes_watched: 6,
+        },
+    ]);
+
+    let clusters = build_clusters(&graph, &library);
+    let cluster = clusters
+        .into_iter()
+        .find(|c| c.members.iter().any(|m| m.anime.mal_id == 1))
+        .expect("camp cluster");
+
+    let total = cluster.total_duration_minutes();
+    let watched = cluster.watched_duration_minutes();
+    let left = cluster.left_duration_minutes();
+
+    assert!(total > 0, "total duration is positive");
+    assert!(watched > 0, "watched duration is positive");
+    assert_eq!(watched, 288 + 144);
+    assert_eq!(left, total - watched);
 }

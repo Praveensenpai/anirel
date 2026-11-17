@@ -19,11 +19,24 @@ use crate::output::{self, FranchiseReport};
 use crate::sys;
 
 /// Run the interactive interface.
-pub async fn run(config: Config, library: Library, engine: Engine) -> anyhow::Result<()> {
+pub async fn run(config: Config, engine: Engine, force_refresh: bool) -> anyhow::Result<()> {
     let scope = config.scope;
     let (tx, mut rx) = mpsc::unbounded_channel::<ScanEvent>();
 
+    let cached = if !force_refresh {
+        engine.cache.read_library(&config.user, config.library_ttl)
+    } else {
+        None
+    };
+
+    let needs_fetch = cached.is_none();
+    let library = cached.unwrap_or_default();
     let mut state = AppState::new(config.user.clone(), library, scope);
+
+    if needs_fetch {
+        state.set_initial_loading(config.user.clone());
+        spawn_library_refresh(&tx, &engine, config.user.clone());
+    }
 
     let mut terminal = ratatui::init();
     let result = event_loop(&mut terminal, &mut state, &mut rx, &tx, &engine).await;
@@ -44,9 +57,20 @@ async fn event_loop(
         if event::poll(Duration::from_millis(80))? {
             match event::read()? {
                 Event::Key(key) if key.kind != KeyEventKind::Release => {
-                    let action = action_for(key, state.search_mode);
-                    if let Some(effect) = apply(state, action) {
-                        handle_effect(state, effect, tx, engine);
+                    if state.initial_loading.is_some() {
+                        if matches!(
+                            key.code,
+                            event::KeyCode::Char('q') | event::KeyCode::Esc
+                        ) || (key.modifiers.contains(event::KeyModifiers::CONTROL)
+                            && key.code == event::KeyCode::Char('c'))
+                        {
+                            state.should_quit = true;
+                        }
+                    } else {
+                        let action = action_for(key, state.search_mode);
+                        if let Some(effect) = apply(state, action) {
+                            handle_effect(state, effect, tx, engine);
+                        }
                     }
                 }
                 Event::Resize(_, _) => {}
@@ -56,6 +80,9 @@ async fn event_loop(
 
         while let Ok(event) = rx.try_recv() {
             match event {
+                ScanEvent::LibraryFetchProgress(count) => {
+                    state.update_initial_progress(count);
+                }
                 ScanEvent::Resolved(items) => {
                     for item in items {
                         state.ingest(item.anime, item.relations);
@@ -81,15 +108,27 @@ async fn event_loop(
                 ScanEvent::LibraryRefreshed(result) => match result {
                     Ok(library) => {
                         let count = library.entries.len();
-                        state.library = library;
-                        state.rebuild();
-                        notify(
-                            state,
-                            format!("list refreshed · {count} titles"),
-                            MessageKind::Success,
-                        );
+                        if state.initial_loading.is_some() {
+                            state.complete_initial_loading(library);
+                            notify(
+                                state,
+                                format!("library loaded · {count} titles"),
+                                MessageKind::Success,
+                            );
+                        } else {
+                            state.library = library;
+                            state.rebuild();
+                            notify(
+                                state,
+                                format!("list refreshed · {count} titles"),
+                                MessageKind::Success,
+                            );
+                        }
                     }
                     Err(error) => {
+                        if state.initial_loading.is_some() {
+                            state.fail_initial_loading(error.clone());
+                        }
                         notify(
                             state,
                             format!("refresh failed: {error}"),
@@ -261,8 +300,11 @@ fn spawn_library_refresh(tx: &mpsc::UnboundedSender<ScanEvent>, engine: &Engine,
     let engine = engine.clone();
     let tx = tx.clone();
     tokio::spawn(async move {
+        let tx_prog = tx.clone();
         let result = engine
-            .library(&user, true)
+            .library_with_progress(&user, true, move |count| {
+                let _ = tx_prog.send(ScanEvent::LibraryFetchProgress(count));
+            })
             .await
             .map_err(|error| error.to_string());
         tx.send(ScanEvent::LibraryRefreshed(result)).ok();

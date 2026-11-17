@@ -18,6 +18,7 @@ fn anime(mal_id: i64, title: &str, year: i32, format: &str) -> Anime {
         title_japanese: None,
         format: format.into(),
         episodes: Some(12),
+        duration: None,
         airing_status: "Finished Airing".into(),
         year: Some(year),
         aired_from: Some((year, 1, 1)),
@@ -247,5 +248,54 @@ fn the_force_refresh_keys_request_a_library_refresh() {
     assert_eq!(
         apply(&mut state, Action::RefreshLibrary),
         Some(Effect::RefreshLibrary)
+    );
+}
+
+#[test]
+fn initial_loading_screen_renders_progress_and_completion() {
+    let mut state = AppState::new("Praveen20".into(), Library::default(), Scope::default());
+    state.set_initial_loading("Praveen20".into());
+    state.update_initial_progress(600);
+
+    let frame = render(&state, 120, 24);
+    assert!(
+        frame.contains("Loading Library"),
+        "the loading title is displayed:\n{frame}"
+    );
+    assert!(
+        frame.contains("600 titles fetched"),
+        "the progress count is displayed:\n{frame}"
+    );
+
+    // Complete loading
+    state.complete_initial_loading(library());
+    assert!(state.initial_loading.is_none());
+    let frame = render(&state, 120, 24);
+    assert!(
+        !frame.contains("Loading Library"),
+        "the loading overlay is gone after completion:\n{frame}"
+    );
+    assert!(
+        frame.contains("MY LIBRARY"),
+        "the library is visible:\n{frame}"
+    );
+}
+
+#[test]
+fn tui_renders_duration_and_watched_left() {
+    let state = loaded_state();
+    let frame = render(&state, 140, 26);
+
+    assert!(
+        frame.contains("total"),
+        "total duration is rendered:\n{frame}"
+    );
+    assert!(
+        frame.contains("watched"),
+        "watched duration is rendered:\n{frame}"
+    );
+    assert!(
+        frame.contains("left"),
+        "left duration is rendered:\n{frame}"
     );
 }

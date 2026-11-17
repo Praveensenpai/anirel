@@ -71,7 +71,11 @@ pub enum Command {
     },
 
     /// Check for a newer release and update the binary if needed.
-    Update,
+    Update {
+        /// Force re-download and install even if already up to date.
+        #[arg(short, long)]
+        force: bool,
+    },
 }
 
 #[derive(ValueEnum, Clone, Copy, Debug)]

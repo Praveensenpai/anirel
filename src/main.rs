@@ -14,7 +14,9 @@ fn main() {
         .or_else(config::last_user)
         .unwrap_or_default();
 
-    if user.is_empty() {
+    let is_update = matches!(cli.command, Some(anirel::cli::Command::Update { .. }));
+
+    if user.is_empty() && !is_update {
         eprintln!(
             "anirel needs a MyAnimeList username.\n\n  \
              anirel --user YOUR_NAME\n  \
@@ -22,7 +24,9 @@ fn main() {
         );
         std::process::exit(2);
     }
-    config::remember_user(&user);
+    if !user.is_empty() {
+        config::remember_user(&user);
+    }
 
     let mut config = Config::new(user);
     if cli.refresh {

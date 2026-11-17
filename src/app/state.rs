@@ -49,6 +49,14 @@ pub struct Loading {
     pub hops: usize,
 }
 
+/// Initial library load state when starting with cold cache.
+#[derive(Debug, Clone)]
+pub struct InitialLoading {
+    pub user: String,
+    pub count: usize,
+    pub error: Option<String>,
+}
+
 /// Scan progress shown in the status bar.
 #[derive(Debug, Clone, Default)]
 pub struct ScanStatus {
@@ -89,6 +97,7 @@ pub struct AppState {
     pub should_quit: bool,
     pub message: Option<StatusMessage>,
     pub loading: Option<Loading>,
+    pub initial_loading: Option<InitialLoading>,
     pub scan: ScanStatus,
     pub scope: Scope,
     /// Which franchise the detail pane shows. `None` follows the selection.
@@ -128,6 +137,7 @@ impl AppState {
             should_quit: false,
             message: None,
             loading: None,
+            initial_loading: None,
             scan: ScanStatus::default(),
             scope,
             detail_root: None,
@@ -136,6 +146,32 @@ impl AppState {
         };
         state.rebuild_rows();
         state
+    }
+
+    pub fn set_initial_loading(&mut self, user: String) {
+        self.initial_loading = Some(InitialLoading {
+            user,
+            count: 0,
+            error: None,
+        });
+    }
+
+    pub fn update_initial_progress(&mut self, count: usize) {
+        if let Some(loading) = &mut self.initial_loading {
+            loading.count = count;
+        }
+    }
+
+    pub fn complete_initial_loading(&mut self, library: Library) {
+        self.initial_loading = None;
+        self.library = library;
+        self.rebuild();
+    }
+
+    pub fn fail_initial_loading(&mut self, error: String) {
+        if let Some(loading) = &mut self.initial_loading {
+            loading.error = Some(error);
+        }
     }
 
     /// Integrate newly resolved titles and recompute the franchises.

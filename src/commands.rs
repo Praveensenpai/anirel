@@ -12,29 +12,21 @@ use crate::output::{self, FranchiseReport};
 /// Run the requested command.
 pub async fn dispatch(cli: &Cli, config: &Config) -> Result<i32> {
     match &cli.command {
-        Some(Command::Tui) => crate::tui::run(
-            config.clone(),
-            load_library(config, cli).await?,
-            engine(config).await?,
-        )
-        .await
-        .map(|_| 0)
-        .map_err(|e| AnirelError::Other(e.to_string())),
+        Some(Command::Tui) => crate::tui::run(config.clone(), engine(config).await?, cli.refresh)
+            .await
+            .map(|_| 0)
+            .map_err(|e| AnirelError::Other(e.to_string())),
         Some(Command::Related { query, hops }) => related(cli, config, query, *hops).await,
         Some(Command::Gaps { watched_only }) => gaps(cli, config, *watched_only).await,
         Some(Command::Export { format, output }) => export(cli, config, *format, output).await,
         Some(Command::Search { query }) => search(cli, query).await,
-        Some(Command::Update) => update(cli).await,
+        Some(Command::Update { force }) => update(cli, *force).await,
         None => {
             if crate::sys::stdout_is_tty() {
-                crate::tui::run(
-                    config.clone(),
-                    load_library(config, cli).await?,
-                    engine(config).await?,
-                )
-                .await
-                .map(|_| 0)
-                .map_err(|e| AnirelError::Other(e.to_string()))
+                crate::tui::run(config.clone(), engine(config).await?, cli.refresh)
+                    .await
+                    .map(|_| 0)
+                    .map_err(|e| AnirelError::Other(e.to_string()))
             } else {
                 println!(
                     "anirel - find the related anime you have not watched yet\n\n\
@@ -60,7 +52,35 @@ async fn engine(config: &Config) -> Result<Engine> {
 
 async fn load_library(config: &Config, cli: &Cli) -> Result<crate::domain::model::Library> {
     let engine = engine(config).await?;
-    engine.library(&config.user, cli.refresh).await
+    let cached = if !cli.refresh {
+        engine.cache.read_library(&config.user, config.library_ttl)
+    } else {
+        None
+    };
+    if let Some(library) = cached {
+        return Ok(library);
+    }
+    if !cli.json && crate::sys::stdout_is_tty() {
+        eprint!("🌸 Fetching MyAnimeList library for {}…", config.user);
+    }
+    let library = engine
+        .library_with_progress(&config.user, true, |count| {
+            if !cli.json && crate::sys::stdout_is_tty() {
+                eprint!(
+                    "\r🌸 Fetching MyAnimeList library for {}… ({} titles)",
+                    config.user, count
+                );
+            }
+        })
+        .await?;
+    if !cli.json && crate::sys::stdout_is_tty() {
+        eprintln!(
+            "\r🌸 Fetched {} titles for {}.           ",
+            library.entries.len(),
+            config.user
+        );
+    }
+    Ok(library)
 }
 
 /// `anirel related <query>`
@@ -249,25 +269,36 @@ async fn search(cli: &Cli, query: &str) -> Result<i32> {
 }
 
 /// `anirel update`
-async fn update(cli: &Cli) -> Result<i32> {
-    let report = crate::infra::update::run().await?;
+async fn update(cli: &Cli, force: bool) -> Result<i32> {
+    let report = if cli.json {
+        crate::infra::update::run(force).await?
+    } else {
+        crate::infra::update::run_with_progress(force, |status| {
+            eprintln!("🌸 {status}");
+        })
+        .await?
+    };
+
     if cli.json {
-        println!(
-            "{}",
-            serde_json::to_string_pretty(&serde_json::json!({
-                "current": report.current,
-                "latest": report.latest,
-                "updated": report.updated,
-            }))
-            .unwrap_or_default()
-        );
+        let payload = serde_json::json!({
+            "current": report.current,
+            "latest": report.latest,
+            "updated": report.updated,
+            "target": report.target.map(|p| p.display().to_string()),
+        });
+        println!("{}", serde_json::to_string_pretty(&payload).unwrap_or_default());
     } else if report.updated {
-        println!("updated anirel {} → {}", report.current, report.latest);
+        let dest = report
+            .target
+            .as_ref()
+            .map(|p| format!(" ({})", p.display()))
+            .unwrap_or_default();
+        println!("✨ Updated anirel v{} → v{}{}", report.current, report.latest, dest);
     } else if report.current == report.latest {
-        println!("anirel {} is up to date", report.current);
+        println!("✔ anirel v{} is up to date", report.current);
     } else {
         println!(
-            "anirel {} is newer than the latest release ({})",
+            "ℹ anirel v{} is newer than the latest release (v{})",
             report.current, report.latest
         );
     }
