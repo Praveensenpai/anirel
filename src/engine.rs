@@ -33,7 +33,8 @@ impl Engine {
 
     /// Load the user's library, preferring a warm cache.
     pub async fn library(&self, user: &str, force_refresh: bool) -> Result<Library> {
-        self.library_with_progress(user, force_refresh, |_| {}).await
+        self.library_with_progress(user, force_refresh, |_| {})
+            .await
     }
 
     /// Load the user's library, preferring a warm cache, and report progress if fetching.
@@ -50,7 +51,9 @@ impl Engine {
             return Ok(library);
         }
         let client = MalWebClient::new();
-        let library = client.fetch_library_with_progress(user, on_progress).await?;
+        let library = client
+            .fetch_library_with_progress(user, on_progress)
+            .await?;
         let _ = self.cache.write_library(user, &library);
         Ok(library)
     }
@@ -202,5 +205,3 @@ pub async fn search_titles(query: &str) -> Result<Vec<Anime>> {
             other => other,
         })
 }
-
-

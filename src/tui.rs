@@ -58,11 +58,9 @@ async fn event_loop(
             match event::read()? {
                 Event::Key(key) if key.kind != KeyEventKind::Release => {
                     if state.initial_loading.is_some() {
-                        if matches!(
-                            key.code,
-                            event::KeyCode::Char('q') | event::KeyCode::Esc
-                        ) || (key.modifiers.contains(event::KeyModifiers::CONTROL)
-                            && key.code == event::KeyCode::Char('c'))
+                        if matches!(key.code, event::KeyCode::Char('q') | event::KeyCode::Esc)
+                            || (key.modifiers.contains(event::KeyModifiers::CONTROL)
+                                && key.code == event::KeyCode::Char('c'))
                         {
                             state.should_quit = true;
                         }

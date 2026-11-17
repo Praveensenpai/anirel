@@ -179,10 +179,7 @@ impl Cluster {
     }
 
     pub fn left_duration_minutes(&self) -> i64 {
-        self.members
-            .iter()
-            .map(|m| m.left_duration_minutes())
-            .sum()
+        self.members.iter().map(|m| m.left_duration_minutes()).sum()
     }
 }
 

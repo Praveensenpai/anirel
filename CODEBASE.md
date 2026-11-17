@@ -136,7 +136,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   pub enum ExportFormat
   ```
 
-### `src/commands.rs` (Role: general, Lines: 340)
+### `src/commands.rs` (Role: general, Lines: 346)
 - **Responsibility**: Core general logic in src/commands.rs
 - **Imports**: use std :: path :: Path , use crate :: cli :: { Cli , Command , ExportFormat } , use crate :: config :: Config , use crate :: domain :: cluster :: { RelationGraph , build_clusters } , use crate :: engine :: Engine , use crate :: error :: { AnirelError , Result } , use crate :: output :: { self , FranchiseReport } 
 - **Public Functions & Signatures**:
@@ -163,7 +163,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   fn last_user () -> Option < String >
   ```
 
-### `src/domain/cluster.rs` (Role: domain, Lines: 484)
+### `src/domain/cluster.rs` (Role: domain, Lines: 481)
 - **Responsibility**: Core domain logic in src/domain/cluster.rs
 - **Imports**: use std :: collections :: { HashMap , HashSet } , use super :: model :: { Anime , Library , LibraryEntry } , use super :: relation :: RelationKind , use super :: watch_order :: order_members 
 - **Types & Enums**:
@@ -268,7 +268,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   fn order_members (graph : & RelationGraph , ids : & [i64]) -> Vec < (Anime , RelationKind) >
   ```
 
-### `src/engine.rs` (Role: general, Lines: 206)
+### `src/engine.rs` (Role: general, Lines: 207)
 - **Responsibility**: Core general logic in src/engine.rs
 - **Imports**: use std :: collections :: HashSet , use std :: path :: PathBuf , use std :: time :: Duration , use crate :: domain :: cluster :: RelationGraph , use crate :: domain :: model :: { Anime , Library } , use crate :: domain :: relation :: RelationKind , use crate :: error :: { AnirelError , Result } , use crate :: infra :: anilist :: { AniListClient , BATCH_SIZE , Media , ResolvedMedia } , use crate :: infra :: cache :: Cache , use crate :: infra :: mal_web :: MalWebClient 
 - **Types & Enums**:
@@ -419,7 +419,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   fn color_enabled () -> bool
   ```
 
-### `src/tui.rs` (Role: tui, Lines: 332)
+### `src/tui.rs` (Role: tui, Lines: 330)
 - **Responsibility**: Core tui logic in src/tui.rs
 - **Imports**: use std :: io :: Stdout , use std :: time :: Duration , use crossterm :: event :: { self , Event , KeyEventKind } , use ratatui :: Terminal , use ratatui :: backend :: CrosstermBackend , use tokio :: sync :: mpsc , use crate :: app :: actions :: action_for , use crate :: app :: scanner :: { self , ScanEvent } , use crate :: app :: state :: { AppState , Loading , MessageKind } , use crate :: app :: update :: { Effect , apply , notify } , use crate :: config :: Config , use crate :: domain :: model :: Library , use crate :: engine :: Engine , use crate :: output :: { self , FranchiseReport } , use crate :: sys 
 - **Public Functions & Signatures**:
@@ -461,7 +461,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   fn draw (f : & mut Frame , state : & AppState)
   ```
 
-### `src/ui/panes.rs` (Role: tui, Lines: 439)
+### `src/ui/panes.rs` (Role: tui, Lines: 437)
 - **Responsibility**: Core tui logic in src/ui/panes.rs
 - **Imports**: use ratatui :: prelude :: * , use ratatui :: widgets :: { Gauge , List , ListItem , ListState , Paragraph , Wrap } , use unicode_width :: UnicodeWidthStr , use crate :: app :: state :: { AppState , Focus , Row , View } , use crate :: domain :: model :: LibraryStatus , use crate :: ui :: theme :: Theme , use crate :: ui :: widgets :: { fit , fit_title , panel } 
 - **Public Functions & Signatures**:

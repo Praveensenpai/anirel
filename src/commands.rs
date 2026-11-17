@@ -286,14 +286,20 @@ async fn update(cli: &Cli, force: bool) -> Result<i32> {
             "updated": report.updated,
             "target": report.target.map(|p| p.display().to_string()),
         });
-        println!("{}", serde_json::to_string_pretty(&payload).unwrap_or_default());
+        println!(
+            "{}",
+            serde_json::to_string_pretty(&payload).unwrap_or_default()
+        );
     } else if report.updated {
         let dest = report
             .target
             .as_ref()
             .map(|p| format!(" ({})", p.display()))
             .unwrap_or_default();
-        println!("✨ Updated anirel v{} → v{}{}", report.current, report.latest, dest);
+        println!(
+            "✨ Updated anirel v{} → v{}{}",
+            report.current, report.latest, dest
+        );
     } else if report.current == report.latest {
         println!("✔ anirel v{} is up to date", report.current);
     } else {

@@ -333,9 +333,7 @@ pub fn render_detail(f: &mut Frame, area: Rect, state: &AppState) {
     f.render_stateful_widget(List::new(items), inner, &mut list_state);
 }
 
-fn format_member_duration_stats(
-    member: &crate::domain::cluster::ClusterMember,
-) -> Option<String> {
+fn format_member_duration_stats(member: &crate::domain::cluster::ClusterMember) -> Option<String> {
     let total = member.anime.format_total_duration()?;
     let watched = member.watched_duration_minutes();
     let left = member.left_duration_minutes();
