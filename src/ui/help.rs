@@ -7,7 +7,7 @@ use crate::ui::theme::Theme;
 
 pub fn render_help(f: &mut Frame, area: Rect) {
     let width = 64.min(area.width.saturating_sub(4));
-    let height = 24.min(area.height.saturating_sub(2));
+    let height = 26.min(area.height.saturating_sub(2));
     let popup = Rect {
         x: area.x + (area.width.saturating_sub(width)) / 2,
         y: area.y + (area.height.saturating_sub(height)) / 2,
@@ -21,6 +21,7 @@ pub fn render_help(f: &mut Frame, area: Rect) {
         ("↑ ↓ / j k", "move selection"),
         ("tab / shift+tab", "switch focus between panes"),
         ("/", "filter (esc to clear)"),
+        ("s", "cycle sort: A–Z / Last Updated / Score / Year"),
         ("1 / 2", "franchises / missing"),
         ("o / enter", "open on MyAnimeList"),
         ("c", "copy link"),

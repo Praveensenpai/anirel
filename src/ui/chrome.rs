@@ -5,7 +5,6 @@ use ratatui::widgets::Paragraph;
 
 use crate::app::state::{AppState, View};
 use crate::ui::theme::Theme;
-
 pub fn render_header(f: &mut Frame, area: Rect, state: &AppState) {
     let left = Line::from(vec![
         Span::styled(" anirel ", Theme::bold(Theme::accent())),
@@ -101,15 +100,20 @@ pub fn render_tabs(f: &mut Frame, area: Rect, state: &AppState) {
         Theme::base()
     };
 
-    let right = Line::from(vec![Span::styled(filter_text, filter_style)]);
+    let sort_label = format!("⇅ {}", state.sort.label());
+    let right_parts = Line::from(vec![
+        Span::styled(sort_label, Theme::muted()),
+        Span::raw("   "),
+        Span::styled(filter_text, filter_style),
+    ]);
     let gap = area
         .width
         .saturating_sub(spans.iter().map(|s| s.width()).sum::<usize>() as u16)
-        .saturating_sub(right.width() as u16);
+        .saturating_sub(right_parts.width() as u16);
 
     let mut all = spans;
     all.push(Span::raw(" ".repeat(gap as usize)));
-    all.extend(right.spans);
+    all.extend(right_parts.spans);
     f.render_widget(Paragraph::new(Line::from(all)), area);
 }
 
@@ -129,6 +133,7 @@ pub fn render_footer(f: &mut Frame, area: Rect, state: &AppState) {
     let full: &[(&str, &str)] = &[
         ("tab", "focus"),
         ("/", "filter"),
+        ("s", "sort"),
         ("L", "load"),
         ("F", "refresh list"),
         ("o", "open"),
@@ -140,12 +145,13 @@ pub fn render_footer(f: &mut Frame, area: Rect, state: &AppState) {
     ];
     let short: &[(&str, &str)] = &[
         ("/", "filter"),
+        ("s", "sort"),
         ("L", "load"),
         ("o", "open"),
         ("?", "help"),
         ("q", "quit"),
     ];
-    let hints = if area.width >= 96 { full } else { short };
+    let hints = if area.width >= 104 { full } else { short };
     for (key, label) in hints {
         spans.push(Span::styled(
             format!(" {key} "),
@@ -153,6 +159,17 @@ pub fn render_footer(f: &mut Frame, area: Rect, state: &AppState) {
         ));
         spans.push(Span::styled(format!("{label}  "), Theme::muted()));
     }
+
+    // Sort indicator right-aligned.
+    let sort_indicator = format!("⇅ {}  ", state.sort.label());
+    let used: usize = spans.iter().map(|s| s.width()).sum();
+    let sort_w = sort_indicator.len();
+    let gap = area.width as usize;
+    if used + sort_w < gap {
+        let padding = gap - used - sort_w;
+        spans.push(Span::raw(" ".repeat(padding)));
+    }
+    spans.push(Span::styled(sort_indicator, Theme::muted()));
 
     f.render_widget(Paragraph::new(Line::from(spans)), area);
 }

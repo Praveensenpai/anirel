@@ -6,6 +6,41 @@ use crate::domain::cluster::{Cluster, RelationGraph, build_clusters};
 use crate::domain::model::{Anime, Library, LibraryEntry};
 use crate::domain::relation::RelationKind;
 
+/// Order in which the library list is sorted.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SortOrder {
+    /// Alphabetical by display title (A→Z).
+    Alphabetical,
+    /// Original MAL list order (most-recently-updated first).
+    LastUpdated,
+    /// User score descending; unscored entries last.
+    Score,
+    /// Release year descending; unknown-year entries last.
+    Year,
+}
+
+impl SortOrder {
+    /// Short label shown in the footer.
+    pub fn label(self) -> &'static str {
+        match self {
+            Self::Alphabetical => "A–Z",
+            Self::LastUpdated => "Last Updated",
+            Self::Score => "Score",
+            Self::Year => "Year",
+        }
+    }
+
+    /// Cycle to the next sort mode.
+    pub fn next(self) -> Self {
+        match self {
+            Self::Alphabetical => Self::LastUpdated,
+            Self::LastUpdated => Self::Score,
+            Self::Score => Self::Year,
+            Self::Year => Self::Alphabetical,
+        }
+    }
+}
+
 /// Which list the main pane is showing.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum View {
@@ -88,6 +123,7 @@ pub struct AppState {
     /// Franchises that have been loaded so far.
     pub clusters: Vec<Cluster>,
     pub view: View,
+    pub sort: SortOrder,
     pub filter: String,
     pub search_mode: bool,
     pub selected: usize,
@@ -128,6 +164,7 @@ impl AppState {
             graph: RelationGraph::new(),
             clusters: Vec::new(),
             view: View::Library,
+            sort: SortOrder::Alphabetical,
             filter: String::new(),
             search_mode: false,
             selected: 0,
@@ -200,7 +237,21 @@ impl AppState {
             View::Library => {
                 let mut entries: Vec<(usize, &LibraryEntry)> =
                     self.library.entries.iter().enumerate().collect();
-                entries.sort_by_key(|(_, entry)| entry.anime.display_title().to_lowercase());
+                match self.sort {
+                    SortOrder::Alphabetical => {
+                        entries.sort_by_key(|(_, e)| e.anime.display_title().to_lowercase());
+                    }
+                    SortOrder::LastUpdated => {
+                        // MAL list order is chronological ascending; reverse for most-recent first.
+                        entries.reverse();
+                    }
+                    SortOrder::Score => {
+                        entries.sort_by(|(_, a), (_, b)| b.score.cmp(&a.score));
+                    }
+                    SortOrder::Year => {
+                        entries.sort_by(|(_, a), (_, b)| b.anime.year.cmp(&a.anime.year));
+                    }
+                }
                 for (index, entry) in entries {
                     if !filter.is_empty() && !matches_filter(&entry.anime, &filter) {
                         continue;
@@ -234,6 +285,13 @@ impl AppState {
             self.selected = self.rows.len().saturating_sub(1);
         }
         self.member_selected = 0;
+    }
+
+    pub fn set_sort(&mut self, sort: SortOrder) {
+        self.sort = sort;
+        self.selected = 0;
+        self.member_selected = 0;
+        self.rebuild_rows();
     }
 
     pub fn rows(&self) -> &[Row] {

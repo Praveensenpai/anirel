@@ -35,6 +35,8 @@ pub enum Action {
     Load,
     /// Load every franchise in the library at once.
     ScanAll,
+    /// Cycle the list sort order.
+    ToggleSort,
     Insert(char),
     Noop,
 }
@@ -88,6 +90,7 @@ pub fn action_for(key: KeyEvent, search_mode: bool) -> Action {
         KeyCode::Char('f') | KeyCode::Char('F') => Action::RefreshLibrary,
         KeyCode::Char('l') | KeyCode::Char('L') => Action::Load,
         KeyCode::Char('a') | KeyCode::Char('A') => Action::ScanAll,
+        KeyCode::Char('s') | KeyCode::Char('S') => Action::ToggleSort,
         KeyCode::Char('n') | KeyCode::Char('N') => Action::NextView,
         KeyCode::Char('p') | KeyCode::Char('P') => Action::PrevView,
         _ => Action::Noop,

@@ -1,7 +1,7 @@
 //! Pure state transitions: actions in, state changes and effects out.
 
 use crate::app::actions::Action;
-use crate::app::state::{AppState, Focus, MessageKind, View};
+use crate::app::state::{AppState, Focus, MessageKind, SortOrder, View};
 
 /// A side effect the host must perform (I/O stays out of the state layer).
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -131,6 +131,11 @@ pub fn apply(state: &mut AppState, action: Action) -> Option<Effect> {
             })
         }
         Action::ScanAll => Some(Effect::ScanAll),
+        Action::ToggleSort => {
+            let next = SortOrder::next(state.sort);
+            state.set_sort(next);
+            None
+        }
         Action::Noop => None,
     }
 }

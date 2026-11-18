@@ -15,7 +15,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
 
 ## 3. Module & Interface Skeleton
 
-### `src/app/actions.rs` (Role: general, Lines: 107)
+### `src/app/actions.rs` (Role: general, Lines: 110)
 - **Responsibility**: Core general logic in src/app/actions.rs
 - **Imports**: use crossterm :: event :: { KeyCode , KeyEvent , KeyModifiers } , use crate :: app :: state :: View 
 - **Types & Enums**:
@@ -51,11 +51,12 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   async fn run (engine : Engine , library : Library , tx : UnboundedSender < ScanEvent >)
   ```
 
-### `src/app/state.rs` (Role: general, Lines: 375)
+### `src/app/state.rs` (Role: general, Lines: 437)
 - **Responsibility**: Core general logic in src/app/state.rs
 - **Imports**: use crate :: app :: fuzzy , use crate :: config :: Scope , use crate :: domain :: cluster :: { Cluster , RelationGraph , build_clusters } , use crate :: domain :: model :: { Anime , Library , LibraryEntry } , use crate :: domain :: relation :: RelationKind 
 - **Types & Enums**:
   ```rust
+  pub enum SortOrder
   pub enum View
   pub enum Focus
   pub enum Row
@@ -68,6 +69,8 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   ```
 - **Public Functions & Signatures**:
   ```rust
+  fn label (self) -> & 'static str
+  fn next (self) -> Self
   fn label (& self) -> & 'static str
   fn new (user : String , library : Library , scope : Scope) -> Self
   fn set_initial_loading (& mut self , user : String)
@@ -76,6 +79,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   fn fail_initial_loading (& mut self , error : String)
   fn ingest (& mut self , anime : Anime , relations : Vec < (i64 , RelationKind) >)
   fn rebuild (& mut self)
+  fn set_sort (& mut self , sort : SortOrder)
   fn rows (& self) -> & [Row]
   fn set_view (& mut self , view : View)
   fn set_filter (& mut self , filter : String)
@@ -92,9 +96,9 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   fn library_entry (& self , mal_id : i64) -> Option < & LibraryEntry >
   ```
 
-### `src/app/update.rs` (Role: general, Lines: 172)
+### `src/app/update.rs` (Role: general, Lines: 177)
 - **Responsibility**: Core general logic in src/app/update.rs
-- **Imports**: use crate :: app :: actions :: Action , use crate :: app :: state :: { AppState , Focus , MessageKind , View } 
+- **Imports**: use crate :: app :: actions :: Action , use crate :: app :: state :: { AppState , Focus , MessageKind , SortOrder , View } 
 - **Types & Enums**:
   ```rust
   pub enum Effect
@@ -427,7 +431,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   async fn run (config : Config , engine : Engine , force_refresh : bool) -> anyhow :: Result < () >
   ```
 
-### `src/ui/chrome.rs` (Role: tui, Lines: 158)
+### `src/ui/chrome.rs` (Role: tui, Lines: 175)
 - **Responsibility**: Core tui logic in src/ui/chrome.rs
 - **Imports**: use ratatui :: prelude :: * , use ratatui :: widgets :: Paragraph , use crate :: app :: state :: { AppState , View } , use crate :: ui :: theme :: Theme 
 - **Public Functions & Signatures**:
@@ -437,7 +441,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   fn render_footer (f : & mut Frame , area : Rect , state : & AppState)
   ```
 
-### `src/ui/help.rs` (Role: tui, Lines: 58)
+### `src/ui/help.rs` (Role: tui, Lines: 59)
 - **Responsibility**: Core tui logic in src/ui/help.rs
 - **Imports**: use ratatui :: prelude :: * , use ratatui :: widgets :: { Block , BorderType , Borders , Clear , Paragraph , Wrap } , use crate :: ui :: theme :: Theme 
 - **Public Functions & Signatures**:
