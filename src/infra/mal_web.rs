@@ -7,7 +7,7 @@ use crate::domain::model::{Anime, Library, LibraryEntry, LibraryStatus};
 use crate::domain::relation::RelationKind;
 use crate::error::{AnirelError, Result};
 
-const LIST_URL: &str = "https://myanimelist.net/animelist/{user}?status=7&offset={offset}";
+const LIST_URL: &str = "https://myanimelist.net/animelist/{user}?status=7&offset={offset}&order=5";
 const ANIME_URL: &str = "https://myanimelist.net/anime/{id}";
 const PAGE_SIZE: usize = 300;
 const USER_AGENT: &str = "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36";
@@ -136,6 +136,8 @@ struct ListItem {
     num_watched_episodes: i64,
     #[serde(default)]
     anime_image_path: Option<String>,
+    #[serde(default)]
+    updated_at: Option<i64>,
 }
 
 impl ListItem {
@@ -195,6 +197,7 @@ fn parse_list_items(html: &str) -> (usize, Vec<LibraryEntry>) {
                 status: LibraryStatus::from_code(raw.status),
                 score: raw.score,
                 episodes_watched: raw.num_watched_episodes,
+                updated_at: raw.updated_at,
             })
         })
         .collect();

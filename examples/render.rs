@@ -50,6 +50,7 @@ fn main() {
             status: LibraryStatus::Completed,
             score: 10,
             episodes_watched: 12,
+            updated_at: None,
         },
         LibraryEntry {
             anime: with_ja(
@@ -66,12 +67,14 @@ fn main() {
             status: LibraryStatus::Completed,
             score: 10,
             episodes_watched: 13,
+            updated_at: None,
         },
         LibraryEntry {
             anime: anime(58855, "Yuru Camp△ Season 3 Specials", "", 2024, "OVA", 3),
             status: LibraryStatus::PlanToWatch,
             score: 0,
             episodes_watched: 0,
+            updated_at: None,
         },
         LibraryEntry {
             anime: with_ja(
@@ -81,6 +84,7 @@ fn main() {
             status: LibraryStatus::Watching,
             score: 9,
             episodes_watched: 13,
+            updated_at: None,
         },
         LibraryEntry {
             anime: with_ja(
@@ -90,6 +94,7 @@ fn main() {
             status: LibraryStatus::Completed,
             score: 10,
             episodes_watched: 37,
+            updated_at: None,
         },
     ]);
 

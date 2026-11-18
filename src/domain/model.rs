@@ -189,6 +189,8 @@ pub struct LibraryEntry {
     pub status: LibraryStatus,
     pub score: i64,
     pub episodes_watched: i64,
+    #[serde(default)]
+    pub updated_at: Option<i64>,
 }
 
 impl LibraryEntry {

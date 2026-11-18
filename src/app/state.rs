@@ -242,8 +242,7 @@ impl AppState {
                         entries.sort_by_key(|(_, e)| e.anime.display_title().to_lowercase());
                     }
                     SortOrder::LastUpdated => {
-                        // MAL list order is chronological ascending; reverse for most-recent first.
-                        entries.reverse();
+                        entries.sort_by_key(|(_, a)| std::cmp::Reverse(a.updated_at.unwrap_or(0)));
                     }
                     SortOrder::Score => {
                         entries.sort_by_key(|(_, a)| std::cmp::Reverse(a.score));

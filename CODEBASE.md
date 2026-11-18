@@ -51,7 +51,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   async fn run (engine : Engine , library : Library , tx : UnboundedSender < ScanEvent >)
   ```
 
-### `src/app/state.rs` (Role: general, Lines: 437)
+### `src/app/state.rs` (Role: general, Lines: 432)
 - **Responsibility**: Core general logic in src/app/state.rs
 - **Imports**: use crate :: app :: fuzzy , use crate :: config :: Scope , use crate :: domain :: cluster :: { Cluster , RelationGraph , build_clusters } , use crate :: domain :: model :: { Anime , Library , LibraryEntry } , use crate :: domain :: relation :: RelationKind 
 - **Types & Enums**:
@@ -212,7 +212,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
 - **Responsibility**: Core domain logic in src/domain/mod.rs
 - **Imports**: pub use cluster :: { Cluster , ClusterMember , RelationGraph , build_clusters } , pub use model :: { Anime , Library , LibraryEntry , LibraryStatus } , pub use relation :: RelationKind 
 
-### `src/domain/model.rs` (Role: domain, Lines: 247)
+### `src/domain/model.rs` (Role: domain, Lines: 249)
 - **Responsibility**: Core domain logic in src/domain/model.rs
 - **Imports**: use std :: collections :: HashMap , use serde :: { Deserialize , Serialize } 
 - **Types & Enums**:
@@ -326,7 +326,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   async fn search (_client : & AniListClient , query : & str) -> Result < Vec < Anime > >
   ```
 
-### `src/infra/cache.rs` (Role: infra, Lines: 125)
+### `src/infra/cache.rs` (Role: infra, Lines: 128)
 - **Responsibility**: Core infra logic in src/infra/cache.rs
 - **Imports**: use std :: path :: { Path , PathBuf } , use std :: time :: { Duration , SystemTime , UNIX_EPOCH } , use serde :: { Deserialize , Serialize , de :: DeserializeOwned } , use crate :: domain :: model :: { Library , LibraryEntry } , use crate :: error :: { AnirelError , Result } , use crate :: infra :: anilist :: Media 
 - **Types & Enums**:
@@ -343,7 +343,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   fn clear_media (& self) -> Result < () >
   ```
 
-### `src/infra/mal_web.rs` (Role: infra, Lines: 428)
+### `src/infra/mal_web.rs` (Role: infra, Lines: 431)
 - **Responsibility**: Core infra logic in src/infra/mal_web.rs
 - **Imports**: use serde :: Deserialize , use serde_json :: Value , use crate :: domain :: model :: { Anime , Library , LibraryEntry , LibraryStatus } , use crate :: domain :: relation :: RelationKind , use crate :: error :: { AnirelError , Result } 
 - **Types & Enums**:

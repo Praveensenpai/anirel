@@ -42,6 +42,9 @@ impl Cache {
         if expired(cached.fetched_at, ttl) {
             return None;
         }
+        if !cached.payload.is_empty() && cached.payload.iter().all(|e| e.updated_at.is_none()) {
+            return None;
+        }
         Some(Library::new(cached.payload))
     }
 

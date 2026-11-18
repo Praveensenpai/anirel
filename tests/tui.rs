@@ -34,12 +34,14 @@ fn library() -> Library {
             status: LibraryStatus::Completed,
             score: 10,
             episodes_watched: 12,
+            updated_at: None,
         },
         LibraryEntry {
             anime: anime(2, "Heya Camp", 2020, "TV_SHORT"),
             status: LibraryStatus::PlanToWatch,
             score: 0,
             episodes_watched: 0,
+            updated_at: None,
         },
     ])
 }
@@ -298,4 +300,29 @@ fn tui_renders_duration_and_watched_left() {
         frame.contains("left"),
         "left duration is rendered:\n{frame}"
     );
+}
+
+#[test]
+fn sort_by_last_updated_orders_by_timestamp_descending() {
+    let entries = vec![
+        LibraryEntry {
+            anime: anime(1, "Old Title", 2010, "TV"),
+            status: LibraryStatus::Completed,
+            score: 7,
+            episodes_watched: 12,
+            updated_at: Some(1000),
+        },
+        LibraryEntry {
+            anime: anime(2, "Recent Title", 2024, "TV"),
+            status: LibraryStatus::Watching,
+            score: 9,
+            episodes_watched: 3,
+            updated_at: Some(2000),
+        },
+    ];
+    let mut state = AppState::new("user".into(), Library::new(entries), Scope::default());
+    assert_eq!(state.current_anime().unwrap().title, "Old Title");
+
+    state.set_sort(anirel::app::state::SortOrder::LastUpdated);
+    assert_eq!(state.current_anime().unwrap().title, "Recent Title");
 }

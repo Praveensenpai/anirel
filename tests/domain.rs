@@ -27,6 +27,7 @@ fn entry(mal_id: i64, title: &str, year: i32) -> LibraryEntry {
         status: LibraryStatus::Completed,
         score: 10,
         episodes_watched: 12,
+        updated_at: None,
     }
 }
 
@@ -218,6 +219,7 @@ fn franchise_total_watched_and_left_durations() {
             status: LibraryStatus::Watching,
             score: 9,
             episodes_watched: 6,
+            updated_at: None,
         },
     ]);
 
