@@ -246,10 +246,10 @@ impl AppState {
                         entries.reverse();
                     }
                     SortOrder::Score => {
-                        entries.sort_by(|(_, a), (_, b)| b.score.cmp(&a.score));
+                        entries.sort_by_key(|(_, a)| std::cmp::Reverse(a.score));
                     }
                     SortOrder::Year => {
-                        entries.sort_by(|(_, a), (_, b)| b.anime.year.cmp(&a.anime.year));
+                        entries.sort_by_key(|(_, a)| std::cmp::Reverse(a.anime.year));
                     }
                 }
                 for (index, entry) in entries {
