@@ -30,16 +30,57 @@ pub fn compute_cover_dimensions(area: Rect) -> (usize, usize) {
 }
 
 /// Render the cover art centered within `area`.
-pub fn render_cover(f: &mut Frame, area: Rect, art: &CoverArt) {
+pub fn render_cover(
+    f: &mut Frame,
+    area: Rect,
+    art: &CoverArt,
+    mal_id: i64,
+    state: &crate::app::state::AppState,
+) {
     let (cols, rows) = compute_cover_dimensions(area);
     if cols == 0 || rows == 0 {
         return;
     }
 
-    let pixels = art.resample(cols, rows * 2);
     let start_x = area.x + (area.width.saturating_sub(cols as u16)) / 2;
     let start_y = area.y + (area.height.saturating_sub(rows as u16)) / 2;
 
+    if crate::art::detect_graphics() == crate::art::GraphicsSupport::Kitty {
+        skip_cover_cells(f, start_x, start_y, cols as u16, rows as u16);
+        state
+            .active_cover
+            .set(Some(crate::app::state::CoverPlacement {
+                mal_id,
+                x: start_x,
+                y: start_y,
+                cols: cols as u16,
+                rows: rows as u16,
+            }));
+    } else {
+        render_halfblock_cover(f, start_x, start_y, cols, rows, art);
+    }
+}
+
+fn skip_cover_cells(f: &mut Frame, start_x: u16, start_y: u16, cols: u16, rows: u16) {
+    for cy in start_y..start_y + rows {
+        for cx in start_x..start_x + cols {
+            let cell = &mut f.buffer_mut()[(cx, cy)];
+            cell.reset();
+            cell.set_diff_option(ratatui::buffer::CellDiffOption::Skip);
+        }
+    }
+}
+
+/// Render the half-block Unicode fallback for standard terminals.
+pub fn render_halfblock_cover(
+    f: &mut Frame,
+    start_x: u16,
+    start_y: u16,
+    cols: usize,
+    rows: usize,
+    art: &CoverArt,
+) {
+    let pixels = art.resample(cols, rows * 2);
     for r in 0..rows {
         let spans = build_row_spans(&pixels, cols, r);
         f.render_widget(
@@ -51,6 +92,46 @@ pub fn render_cover(f: &mut Frame, area: Rect, art: &CoverArt) {
                 height: 1,
             },
         );
+    }
+}
+
+/// Flush Kitty native image updates to stdout when the cover placement changes.
+pub fn sync_kitty_cover(
+    state: &crate::app::state::AppState,
+    last_placed: &mut Option<crate::app::state::CoverPlacement>,
+) {
+    let current = state.active_cover.get();
+    if current == *last_placed {
+        return;
+    }
+    use std::io::Write;
+    let mut stdout = std::io::stdout();
+    if last_placed.is_some() {
+        let _ = stdout.write_all(crate::art::kitty_clear_visible().as_bytes());
+    }
+    if let Some(placement) = current
+        && let Some(art) = state.cover_for(placement.mal_id)
+    {
+        let seq = crate::art::kitty_render_art(
+            art,
+            placement.x,
+            placement.y,
+            placement.cols,
+            placement.rows,
+        );
+        let _ = stdout.write_all(seq.as_bytes());
+    }
+    let _ = stdout.flush();
+    *last_placed = current;
+}
+
+/// Clear Kitty graphics placements on exit.
+pub fn cleanup_kitty_cover(last_placed: Option<crate::app::state::CoverPlacement>) {
+    if last_placed.is_some() {
+        use std::io::Write;
+        let mut stdout = std::io::stdout();
+        let _ = stdout.write_all(crate::art::kitty_clear_all().as_bytes());
+        let _ = stdout.flush();
     }
 }
 

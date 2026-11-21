@@ -51,126 +51,148 @@ async fn event_loop(
     tx: &mpsc::UnboundedSender<ScanEvent>,
     engine: &Engine,
 ) -> anyhow::Result<()> {
+    let mut last_placed = None;
     loop {
         trigger_cover_fetch(state, tx);
+        state.active_cover.set(None);
         terminal.draw(|f| crate::ui::draw(f, state))?;
+        crate::ui::cover::sync_kitty_cover(state, &mut last_placed);
 
         if event::poll(Duration::from_millis(80))? {
-            match event::read()? {
-                Event::Key(key) if key.kind != KeyEventKind::Release => {
-                    if state.initial_loading.is_some() {
-                        if matches!(key.code, event::KeyCode::Char('q') | event::KeyCode::Esc)
-                            || (key.modifiers.contains(event::KeyModifiers::CONTROL)
-                                && key.code == event::KeyCode::Char('c'))
-                        {
-                            state.should_quit = true;
-                        }
-                    } else {
-                        let action = action_for(key, state.search_mode);
-                        if let Some(effect) = apply(state, action) {
-                            handle_effect(state, effect, tx, engine);
-                        }
-                    }
-                }
-                Event::Resize(_, _) => {}
-                _ => {}
-            }
+            poll_terminal_events(state, tx, engine)?;
         }
 
         while let Ok(event) = rx.try_recv() {
-            match event {
-                ScanEvent::LibraryFetchProgress(count) => {
-                    state.update_initial_progress(count);
-                }
-                ScanEvent::Resolved(items) => {
-                    for item in items {
-                        state.ingest(item.anime, item.relations);
-                    }
-                    state.rebuild();
-                }
-                ScanEvent::Progress { done, total } => {
-                    state.scan.done = done;
-                    state.scan.total = total;
-                }
-                ScanEvent::Finished => {
-                    state.scan.running = false;
-                    state.scan.done = state.scan.total;
-                    state.loading = None;
-                    state.rebuild();
-                }
-                ScanEvent::Failed(error) => {
-                    state.scan.running = false;
-                    state.scan.error = Some(error);
-                    state.loading = None;
-                }
-                ScanEvent::CoverReady(mal_id, maybe_art) => {
-                    state.set_cover(mal_id, maybe_art);
-                }
-                ScanEvent::LibraryRefreshed(result) => match result {
-                    Ok(library) => {
-                        let count = library.entries.len();
-                        if state.initial_loading.is_some() {
-                            state.complete_initial_loading(library);
-                            notify(
-                                state,
-                                format!("library loaded · {count} titles"),
-                                MessageKind::Success,
-                            );
-                        } else {
-                            state.library = library;
-                            state.rebuild();
-                            notify(
-                                state,
-                                format!("list refreshed · {count} titles"),
-                                MessageKind::Success,
-                            );
-                        }
-                    }
-                    Err(error) => {
-                        if state.initial_loading.is_some() {
-                            state.fail_initial_loading(error.clone());
-                        }
-                        notify(
-                            state,
-                            format!("refresh failed: {error}"),
-                            MessageKind::Error,
-                        );
-                    }
-                },
-                ScanEvent::LoadComplete(mal_id) => {
-                    let hops = state.loading.as_ref().map(|l| l.hops).unwrap_or(2);
-                    // The franchise is rooted at the title that was loaded, so
-                    // diving into a side story shows that side story's subtree.
-                    let cluster = crate::domain::cluster::related_to(
-                        &state.graph,
-                        &state.library,
-                        mal_id,
-                        hops,
-                    );
-                    if let Some(cluster) = cluster {
-                        state.show_focus_cluster(cluster);
-                    }
-                    let title = state
-                        .loading
-                        .take()
-                        .map(|loading| loading.anime.display_title().to_string())
-                        .or_else(|| {
-                            state
-                                .graph
-                                .media(mal_id)
-                                .map(|anime| anime.display_title().to_string())
-                        })
-                        .unwrap_or_default();
-                    notify(state, format!("loaded {title}"), MessageKind::Success);
-                }
-            }
+            handle_scan_event(state, event);
         }
 
         if state.should_quit {
             break;
         }
     }
+    crate::ui::cover::cleanup_kitty_cover(last_placed);
     Ok(())
+}
+
+fn poll_terminal_events(
+    state: &mut AppState,
+    tx: &mpsc::UnboundedSender<ScanEvent>,
+    engine: &Engine,
+) -> anyhow::Result<()> {
+    match event::read()? {
+        Event::Key(key) if key.kind != KeyEventKind::Release => {
+            handle_key_event(state, key, tx, engine);
+        }
+        Event::Resize(_, _) => {}
+        _ => {}
+    }
+    Ok(())
+}
+
+fn handle_key_event(
+    state: &mut AppState,
+    key: event::KeyEvent,
+    tx: &mpsc::UnboundedSender<ScanEvent>,
+    engine: &Engine,
+) {
+    if state.initial_loading.is_some() {
+        if matches!(key.code, event::KeyCode::Char('q') | event::KeyCode::Esc)
+            || (key.modifiers.contains(event::KeyModifiers::CONTROL)
+                && key.code == event::KeyCode::Char('c'))
+        {
+            state.should_quit = true;
+        }
+    } else {
+        let action = action_for(key, state.search_mode);
+        if let Some(effect) = apply(state, action) {
+            handle_effect(state, effect, tx, engine);
+        }
+    }
+}
+
+fn handle_scan_event(state: &mut AppState, event: ScanEvent) {
+    match event {
+        ScanEvent::LibraryFetchProgress(count) => state.update_initial_progress(count),
+        ScanEvent::Resolved(items) => {
+            for item in items {
+                state.ingest(item.anime, item.relations);
+            }
+            state.rebuild();
+        }
+        ScanEvent::Progress { done, total } => {
+            state.scan.done = done;
+            state.scan.total = total;
+        }
+        ScanEvent::Finished => {
+            state.scan.running = false;
+            state.scan.done = state.scan.total;
+            state.loading = None;
+            state.rebuild();
+        }
+        ScanEvent::Failed(error) => {
+            state.scan.running = false;
+            state.scan.error = Some(error);
+            state.loading = None;
+        }
+        ScanEvent::CoverReady(mal_id, maybe_art) => state.set_cover(mal_id, maybe_art),
+        ScanEvent::LibraryRefreshed(result) => handle_library_refreshed(state, result),
+        ScanEvent::LoadComplete(mal_id) => handle_load_complete(state, mal_id),
+    }
+}
+
+fn handle_library_refreshed(state: &mut AppState, result: std::result::Result<Library, String>) {
+    match result {
+        Ok(library) => {
+            let count = library.entries.len();
+            if state.initial_loading.is_some() {
+                state.complete_initial_loading(library);
+                notify(
+                    state,
+                    format!("library loaded · {count} titles"),
+                    MessageKind::Success,
+                );
+            } else {
+                state.library = library;
+                state.rebuild();
+                notify(
+                    state,
+                    format!("list refreshed · {count} titles"),
+                    MessageKind::Success,
+                );
+            }
+        }
+        Err(error) => {
+            if state.initial_loading.is_some() {
+                state.fail_initial_loading(error.clone());
+            }
+            notify(
+                state,
+                format!("refresh failed: {error}"),
+                MessageKind::Error,
+            );
+        }
+    }
+}
+
+fn handle_load_complete(state: &mut AppState, mal_id: i64) {
+    let hops = state.loading.as_ref().map(|l| l.hops).unwrap_or(2);
+    if let Some(cluster) =
+        crate::domain::cluster::related_to(&state.graph, &state.library, mal_id, hops)
+    {
+        state.show_focus_cluster(cluster);
+    }
+    let title = state
+        .loading
+        .take()
+        .map(|loading| loading.anime.display_title().to_string())
+        .or_else(|| {
+            state
+                .graph
+                .media(mal_id)
+                .map(|a| a.display_title().to_string())
+        })
+        .unwrap_or_default();
+    notify(state, format!("loaded {title}"), MessageKind::Success);
 }
 
 fn trigger_cover_fetch(state: &mut AppState, tx: &mpsc::UnboundedSender<ScanEvent>) {

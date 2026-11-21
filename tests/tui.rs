@@ -359,3 +359,27 @@ fn poster_renders_watched_episode_count_and_cover_art() {
         "half-block cover art rendered in poster:\n{frame}"
     );
 }
+
+#[test]
+fn poster_registers_kitty_cover_placement_when_graphics_supported() {
+    unsafe {
+        std::env::set_var("ANIREL_GRAPHICS", "kitty");
+    }
+    let mut state = loaded_state();
+    state.selected = 1;
+    let art = anirel::art::CoverArt {
+        width: 10,
+        height: 15,
+        pixels: vec![200; 10 * 15 * 3],
+    };
+    state.set_cover(1, Some(art));
+    let _ = render(&state, 140, 28);
+    let placement = state.active_cover.get();
+    assert!(placement.is_some(), "active cover placement recorded");
+    let p = placement.unwrap();
+    assert_eq!(p.mal_id, 1);
+    assert!(p.cols > 0 && p.rows > 0);
+    unsafe {
+        std::env::remove_var("ANIREL_GRAPHICS");
+    }
+}

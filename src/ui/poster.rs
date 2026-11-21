@@ -114,7 +114,7 @@ fn render_cover_section(
     };
 
     if let Some(art) = state.cover_for(anime.mal_id) {
-        render_cover(f, cover_area, art);
+        render_cover(f, cover_area, art, anime.mal_id, state);
         let (_, actual_rows) = compute_cover_dimensions(cover_area);
         y += actual_rows as u16 + 1;
     } else if state.is_fetching_cover(anime.mal_id) {

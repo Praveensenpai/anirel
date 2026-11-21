@@ -51,7 +51,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   async fn run (engine : Engine , library : Library , tx : UnboundedSender < ScanEvent >)
   ```
 
-### `src/app/state.rs` (Role: general, Lines: 451)
+### `src/app/state.rs` (Role: general, Lines: 463)
 - **Responsibility**: Core general logic in src/app/state.rs
 - **Imports**: use std :: collections :: { HashMap , HashSet } , use crate :: app :: fuzzy , use crate :: config :: Scope , use crate :: domain :: cluster :: { Cluster , RelationGraph , build_clusters } , use crate :: domain :: model :: { Anime , Library , LibraryEntry } , use crate :: domain :: relation :: RelationKind 
 - **Types & Enums**:
@@ -65,6 +65,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   pub struct ScanStatus
   pub struct StatusMessage
   pub enum MessageKind
+  pub struct CoverPlacement
   pub struct AppState
   ```
 - **Public Functions & Signatures**:
@@ -112,7 +113,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   fn notify (state : & mut AppState , text : impl Into < String > , kind : MessageKind)
   ```
 
-### `src/art.rs` (Role: general, Lines: 301)
+### `src/art.rs` (Role: general, Lines: 352)
 - **Responsibility**: Core general logic in src/art.rs
 - **Imports**: use std :: path :: PathBuf , use ratatui :: style :: Color , use crate :: error :: { AnirelError , Result } 
 - **Types & Enums**:
@@ -130,7 +131,9 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   async fn ensure_cached (url : & str) -> Option < PathBuf >
   fn decode (path : & std :: path :: Path) -> Result < CoverArt >
   fn base64 (input : & [u8]) -> String
-  fn native_image (protocol : GraphicsSupport , x : u16 , y : u16 , jpeg : & [u8]) -> Option < String >
+  fn kitty_clear_all () -> & 'static str
+  fn kitty_clear_visible () -> & 'static str
+  fn kitty_render_art (art : & CoverArt , x : u16 , y : u16 , cols : u16 , rows : u16) -> String
   ```
 
 ### `src/cli.rs` (Role: cli, Lines: 85)
@@ -427,7 +430,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   fn color_enabled () -> bool
   ```
 
-### `src/tui.rs` (Role: tui, Lines: 356)
+### `src/tui.rs` (Role: tui, Lines: 378)
 - **Responsibility**: Core tui logic in src/tui.rs
 - **Imports**: use std :: io :: Stdout , use std :: time :: Duration , use crossterm :: event :: { self , Event , KeyEventKind } , use ratatui :: Terminal , use ratatui :: backend :: CrosstermBackend , use tokio :: sync :: mpsc , use crate :: app :: actions :: action_for , use crate :: app :: scanner :: { self , ScanEvent } , use crate :: app :: state :: { AppState , Loading , MessageKind } , use crate :: app :: update :: { Effect , apply , notify } , use crate :: config :: Config , use crate :: domain :: model :: Library , use crate :: engine :: Engine , use crate :: output :: { self , FranchiseReport } , use crate :: sys 
 - **Public Functions & Signatures**:
@@ -445,13 +448,16 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   fn render_footer (f : & mut Frame , area : Rect , state : & AppState)
   ```
 
-### `src/ui/cover.rs` (Role: tui, Lines: 118)
+### `src/ui/cover.rs` (Role: tui, Lines: 199)
 - **Responsibility**: Core tui logic in src/ui/cover.rs
 - **Imports**: use ratatui :: prelude :: * , use ratatui :: widgets :: Paragraph , use crate :: art :: { CoverArt , color } , use crate :: ui :: theme :: Theme 
 - **Public Functions & Signatures**:
   ```rust
   fn compute_cover_dimensions (area : Rect) -> (usize , usize)
-  fn render_cover (f : & mut Frame , area : Rect , art : & CoverArt)
+  fn render_cover (f : & mut Frame , area : Rect , art : & CoverArt , mal_id : i64 , state : & crate :: app :: state :: AppState ,)
+  fn render_halfblock_cover (f : & mut Frame , start_x : u16 , start_y : u16 , cols : usize , rows : usize , art : & CoverArt ,)
+  fn sync_kitty_cover (state : & crate :: app :: state :: AppState , last_placed : & mut Option < crate :: app :: state :: CoverPlacement > ,)
+  fn cleanup_kitty_cover (last_placed : Option < crate :: app :: state :: CoverPlacement >)
   fn render_placeholder (f : & mut Frame , area : Rect)
   ```
 

@@ -117,6 +117,16 @@ pub enum MessageKind {
     Error,
 }
 
+/// Placement coordinates for a native terminal graphic cover image.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct CoverPlacement {
+    pub mal_id: i64,
+    pub x: u16,
+    pub y: u16,
+    pub cols: u16,
+    pub rows: u16,
+}
+
 /// The complete application state.
 pub struct AppState {
     pub user: String,
@@ -144,6 +154,7 @@ pub struct AppState {
     pub focus_cluster: Option<crate::domain::cluster::Cluster>,
     pub covers: HashMap<i64, Option<crate::art::CoverArt>>,
     pub fetching_covers: HashSet<i64>,
+    pub active_cover: std::cell::Cell<Option<CoverPlacement>>,
     rows: Vec<Row>,
 }
 
@@ -185,6 +196,7 @@ impl AppState {
             focus_cluster: None,
             covers: HashMap::new(),
             fetching_covers: HashSet::new(),
+            active_cover: std::cell::Cell::new(None),
             rows: Vec::new(),
         };
         state.rebuild_rows();

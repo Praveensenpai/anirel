@@ -73,20 +73,43 @@ pub enum GraphicsSupport {
 
 /// Detect the terminal's native graphics protocol.
 pub fn detect_graphics() -> GraphicsSupport {
-    let term = std::env::var("TERM").unwrap_or_default();
-    if term.contains("kitty") || std::env::var("KITTY_WINDOW_ID").is_ok() {
-        return GraphicsSupport::Kitty;
-    }
-    if std::env::var("TERM_PROGRAM").as_deref() == Ok("iTerm.app") {
-        let version = std::env::var("TERM_PROGRAM_VERSION")
-            .ok()
-            .and_then(|value| value.parse::<u32>().ok())
-            .unwrap_or(0);
-        if version >= 2 {
-            return GraphicsSupport::ITerm2;
+    if let Ok(val) = std::env::var("ANIREL_GRAPHICS") {
+        match val.to_ascii_lowercase().as_str() {
+            "kitty" => return GraphicsSupport::Kitty,
+            "iterm2" => return GraphicsSupport::ITerm2,
+            "halfblock" | "none" => return GraphicsSupport::None,
+            _ => {}
         }
     }
+    if is_kitty_terminal() {
+        return GraphicsSupport::Kitty;
+    }
+    if is_iterm2_terminal() {
+        return GraphicsSupport::ITerm2;
+    }
     GraphicsSupport::None
+}
+
+fn is_kitty_terminal() -> bool {
+    let term = std::env::var("TERM").unwrap_or_default();
+    term.contains("kitty")
+        || std::env::var("KITTY_WINDOW_ID").is_ok()
+        || std::env::var("KITTY_PID").is_ok()
+        || std::env::var("TERM_PROGRAM").as_deref() == Ok("kitty")
+        || std::env::var("TERM_PROGRAM").as_deref() == Ok("ghostty")
+        || std::env::var("TERM_PROGRAM").as_deref() == Ok("WezTerm")
+        || std::env::var("GHOSTTY_RESOURCES_DIR").is_ok()
+}
+
+fn is_iterm2_terminal() -> bool {
+    if std::env::var("TERM_PROGRAM").as_deref() != Ok("iTerm.app") {
+        return false;
+    }
+    std::env::var("TERM_PROGRAM_VERSION")
+        .ok()
+        .and_then(|v| v.parse::<u32>().ok())
+        .unwrap_or(0)
+        >= 2
 }
 
 /// True when the terminal can render 24 bit colour.
@@ -174,7 +197,7 @@ pub fn decode(path: &std::path::Path) -> Result<CoverArt> {
     let image = image::open(path).map_err(|e| AnirelError::Other(format!("cover: {e}")))?;
     let rgb = image.to_rgb8();
     let (width, height) = rgb.dimensions();
-    let (max_width, max_height) = (220u32, 300u32);
+    let (max_width, max_height) = (460u32, 650u32);
     let scale = (width as f32 / max_width as f32)
         .max(height as f32 / max_height as f32)
         .max(1.0);
@@ -224,40 +247,50 @@ pub fn base64(input: &[u8]) -> String {
     out
 }
 
-/// Escape sequence that places a JPEG in the terminal, if the protocol exists.
-pub fn native_image(protocol: GraphicsSupport, x: u16, y: u16, jpeg: &[u8]) -> Option<String> {
-    let payload = base64(jpeg);
-    match protocol {
-        GraphicsSupport::Kitty => {
-            // kitty wants the data in chunks of at most 4096 bytes.
-            let mut out = format!("\x1b[{};{}H", y + 1, x + 1);
-            let chunks: Vec<&str> = payload
-                .as_bytes()
-                .chunks(4096)
-                .map(|chunk| std::str::from_utf8(chunk).unwrap_or_default())
-                .collect();
-            let last = chunks.len().saturating_sub(1);
-            for (index, chunk) in chunks.iter().enumerate() {
-                if index == 0 {
-                    out.push_str(&format!("\x1b_Ga=T,f=100,t=d;{chunk}\x1b\\"));
-                } else if index == last {
-                    out.push_str(&format!("\x1b_Gm=0;{chunk}\x1b\\"));
-                } else {
-                    out.push_str(&format!("\x1b_Gm=1;{chunk}\x1b\\"));
-                }
-            }
-            Some(out)
-        }
-        GraphicsSupport::ITerm2 => Some(
-            format!(
-                "\x1b]1337;File=inline=1;preserveAspectRatio=1;size={}:{}\x07",
-                jpeg.len(),
-                jpeg.len()
-            ) + &payload
-                + "\x07",
-        ),
-        GraphicsSupport::None => None,
+/// Kitty graphics command to clear all images and placements from memory.
+pub fn kitty_clear_all() -> &'static str {
+    "\x1b_Ga=d,d=A\x1b\\"
+}
+
+/// Kitty graphics command to delete all visible image placements.
+pub fn kitty_clear_visible() -> &'static str {
+    "\x1b_Ga=d,d=a\x1b\\"
+}
+
+/// Generate the Kitty graphics escape sequence to display `art` at grid cell `(x, y)`
+/// spanning `cols` columns and `rows` rows without moving the cursor.
+pub fn kitty_render_art(art: &CoverArt, x: u16, y: u16, cols: u16, rows: u16) -> String {
+    if art.pixels.is_empty() || cols == 0 || rows == 0 {
+        return String::new();
     }
+    let payload = base64(&art.pixels);
+    let mut out = String::with_capacity(payload.len() + 256);
+    out.push_str(&format!("\x1b[s\x1b[{};{}H", y + 1, x + 1));
+
+    let chunks: Vec<&str> = payload
+        .as_bytes()
+        .chunks(4096)
+        .map(|chunk| std::str::from_utf8(chunk).unwrap_or_default())
+        .collect();
+
+    let total = chunks.len();
+    for (i, chunk) in chunks.iter().enumerate() {
+        let is_first = i == 0;
+        let is_last = i + 1 == total;
+        let m = if is_last { 0 } else { 1 };
+
+        if is_first {
+            out.push_str(&format!(
+                "\x1b_Ga=T,f=24,s={},v={},c={},r={},C=1,m={m};{chunk}\x1b\\",
+                art.width, art.height, cols, rows
+            ));
+        } else {
+            out.push_str(&format!("\x1b_Gm={m};{chunk}\x1b\\"));
+        }
+    }
+
+    out.push_str("\x1b[u");
+    out
 }
 
 fn fnv1a(text: &str) -> u64 {
@@ -297,5 +330,23 @@ mod tests {
         assert_eq!(xterm256(0, 0, 0), 16);
         assert_eq!(xterm256(255, 255, 255), 231);
         assert!(xterm256(255, 0, 0) >= 196);
+    }
+
+    #[test]
+    fn kitty_clear_sequences_are_well_formed() {
+        assert_eq!(kitty_clear_all(), "\x1b_Ga=d,d=A\x1b\\");
+        assert_eq!(kitty_clear_visible(), "\x1b_Ga=d,d=a\x1b\\");
+    }
+
+    #[test]
+    fn kitty_render_art_builds_chunked_sequence() {
+        let art = CoverArt {
+            width: 2,
+            height: 2,
+            pixels: vec![128; 2 * 2 * 3],
+        };
+        let seq = kitty_render_art(&art, 10, 5, 20, 15);
+        assert!(seq.starts_with("\x1b[s\x1b[6;11H\x1b_Ga=T,f=24,s=2,v=2,c=20,r=15,C=1,m=0;"));
+        assert!(seq.ends_with("\x1b\\\x1b[u"));
     }
 }
