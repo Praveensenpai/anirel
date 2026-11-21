@@ -217,6 +217,23 @@ fn main() {
         state.selected = index;
     }
 
+    let mut cover_pixels = Vec::with_capacity(30 * 45 * 3);
+    for y in 0..45 {
+        for x in 0..30 {
+            cover_pixels.push((x * 7) as u8);
+            cover_pixels.push((80 + y * 3) as u8);
+            cover_pixels.push(200);
+        }
+    }
+    state.set_cover(
+        34798,
+        Some(anirel::art::CoverArt {
+            width: 30,
+            height: 45,
+            pixels: cover_pixels,
+        }),
+    );
+
     let mut terminal = Terminal::new(TestBackend::new(width, height)).unwrap();
     terminal.draw(|f| anirel::ui::draw(f, &state)).unwrap();
     let buffer = terminal.backend().buffer().clone();

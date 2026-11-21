@@ -8,6 +8,8 @@ use crate::app::state::AppState;
 use crate::ui::theme::Theme;
 
 pub mod chrome;
+pub mod cover;
+pub mod detail;
 pub mod help;
 pub mod loading;
 pub mod panes;

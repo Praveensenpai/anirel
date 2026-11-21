@@ -51,9 +51,9 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   async fn run (engine : Engine , library : Library , tx : UnboundedSender < ScanEvent >)
   ```
 
-### `src/app/state.rs` (Role: general, Lines: 432)
+### `src/app/state.rs` (Role: general, Lines: 451)
 - **Responsibility**: Core general logic in src/app/state.rs
-- **Imports**: use crate :: app :: fuzzy , use crate :: config :: Scope , use crate :: domain :: cluster :: { Cluster , RelationGraph , build_clusters } , use crate :: domain :: model :: { Anime , Library , LibraryEntry } , use crate :: domain :: relation :: RelationKind 
+- **Imports**: use std :: collections :: { HashMap , HashSet } , use crate :: app :: fuzzy , use crate :: config :: Scope , use crate :: domain :: cluster :: { Cluster , RelationGraph , build_clusters } , use crate :: domain :: model :: { Anime , Library , LibraryEntry } , use crate :: domain :: relation :: RelationKind 
 - **Types & Enums**:
   ```rust
   pub enum SortOrder
@@ -94,6 +94,9 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   fn current_anime (& self) -> Option < & Anime >
   fn total_gaps (& self) -> usize
   fn library_entry (& self , mal_id : i64) -> Option < & LibraryEntry >
+  fn cover_for (& self , mal_id : i64) -> Option < & crate :: art :: CoverArt >
+  fn is_fetching_cover (& self , mal_id : i64) -> bool
+  fn set_cover (& mut self , mal_id : i64 , cover : Option < crate :: art :: CoverArt >)
   ```
 
 ### `src/app/update.rs` (Role: general, Lines: 177)
@@ -212,7 +215,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
 - **Responsibility**: Core domain logic in src/domain/mod.rs
 - **Imports**: pub use cluster :: { Cluster , ClusterMember , RelationGraph , build_clusters } , pub use model :: { Anime , Library , LibraryEntry , LibraryStatus } , pub use relation :: RelationKind 
 
-### `src/domain/model.rs` (Role: domain, Lines: 249)
+### `src/domain/model.rs` (Role: domain, Lines: 258)
 - **Responsibility**: Core domain logic in src/domain/model.rs
 - **Imports**: use std :: collections :: HashMap , use serde :: { Deserialize , Serialize } 
 - **Types & Enums**:
@@ -240,6 +243,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   fn glyph (& self) -> & 'static str
   fn is_completed (& self) -> bool
   fn url (& self) -> String
+  fn format_progress (& self) -> String
   fn new (entries : Vec < LibraryEntry >) -> Self
   fn get (& self , mal_id : i64) -> Option < & LibraryEntry >
   fn get_mut (& mut self , mal_id : i64) -> Option < & mut LibraryEntry >
@@ -386,7 +390,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
 - **Responsibility**: Core general logic in src/main.rs
 - **Imports**: use anirel :: cli :: Cli , use anirel :: config :: { self , Config } , use anirel :: sys , use clap :: Parser 
 
-### `src/output.rs` (Role: general, Lines: 393)
+### `src/output.rs` (Role: general, Lines: 400)
 - **Responsibility**: Core general logic in src/output.rs
 - **Imports**: use serde_json :: { Value , json } , use unicode_width :: UnicodeWidthStr , use crate :: domain :: cluster :: Cluster , use crate :: domain :: model :: Library 
 - **Types & Enums**:
@@ -423,7 +427,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   fn color_enabled () -> bool
   ```
 
-### `src/tui.rs` (Role: tui, Lines: 330)
+### `src/tui.rs` (Role: tui, Lines: 356)
 - **Responsibility**: Core tui logic in src/tui.rs
 - **Imports**: use std :: io :: Stdout , use std :: time :: Duration , use crossterm :: event :: { self , Event , KeyEventKind } , use ratatui :: Terminal , use ratatui :: backend :: CrosstermBackend , use tokio :: sync :: mpsc , use crate :: app :: actions :: action_for , use crate :: app :: scanner :: { self , ScanEvent } , use crate :: app :: state :: { AppState , Loading , MessageKind } , use crate :: app :: update :: { Effect , apply , notify } , use crate :: config :: Config , use crate :: domain :: model :: Library , use crate :: engine :: Engine , use crate :: output :: { self , FranchiseReport } , use crate :: sys 
 - **Public Functions & Signatures**:
@@ -439,6 +443,24 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   fn render_header (f : & mut Frame , area : Rect , state : & AppState)
   fn render_tabs (f : & mut Frame , area : Rect , state : & AppState)
   fn render_footer (f : & mut Frame , area : Rect , state : & AppState)
+  ```
+
+### `src/ui/cover.rs` (Role: tui, Lines: 118)
+- **Responsibility**: Core tui logic in src/ui/cover.rs
+- **Imports**: use ratatui :: prelude :: * , use ratatui :: widgets :: Paragraph , use crate :: art :: { CoverArt , color } , use crate :: ui :: theme :: Theme 
+- **Public Functions & Signatures**:
+  ```rust
+  fn compute_cover_dimensions (area : Rect) -> (usize , usize)
+  fn render_cover (f : & mut Frame , area : Rect , art : & CoverArt)
+  fn render_placeholder (f : & mut Frame , area : Rect)
+  ```
+
+### `src/ui/detail.rs` (Role: tui, Lines: 293)
+- **Responsibility**: Core tui logic in src/ui/detail.rs
+- **Imports**: use ratatui :: prelude :: * , use ratatui :: widgets :: { List , ListItem , ListState , Paragraph , Wrap } , use unicode_width :: UnicodeWidthStr , use crate :: app :: state :: { AppState , Focus } , use crate :: domain :: cluster :: ClusterMember , use crate :: ui :: panes :: status_glyph , use crate :: ui :: theme :: Theme , use crate :: ui :: widgets :: { fit_title , panel } 
+- **Public Functions & Signatures**:
+  ```rust
+  fn render_detail (f : & mut Frame , area : Rect , state : & AppState)
   ```
 
 ### `src/ui/help.rs` (Role: tui, Lines: 59)
@@ -457,7 +479,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   fn render_loading (f : & mut Frame , area : Rect , state : & AppState)
   ```
 
-### `src/ui/mod.rs` (Role: tui, Lines: 90)
+### `src/ui/mod.rs` (Role: tui, Lines: 92)
 - **Responsibility**: Core tui logic in src/ui/mod.rs
 - **Imports**: use ratatui :: Frame , use ratatui :: prelude :: * , use ratatui :: widgets :: { Paragraph , Wrap } , use crate :: app :: state :: AppState , use crate :: ui :: theme :: Theme 
 - **Public Functions & Signatures**:
@@ -465,25 +487,23 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   fn draw (f : & mut Frame , state : & AppState)
   ```
 
-### `src/ui/panes.rs` (Role: tui, Lines: 437)
+### `src/ui/panes.rs` (Role: tui, Lines: 223)
 - **Responsibility**: Core tui logic in src/ui/panes.rs
-- **Imports**: use ratatui :: prelude :: * , use ratatui :: widgets :: { Gauge , List , ListItem , ListState , Paragraph , Wrap } , use unicode_width :: UnicodeWidthStr , use crate :: app :: state :: { AppState , Focus , Row , View } , use crate :: domain :: model :: LibraryStatus , use crate :: ui :: theme :: Theme , use crate :: ui :: widgets :: { fit , fit_title , panel } 
+- **Imports**: use ratatui :: prelude :: * , use ratatui :: widgets :: { Gauge , List , ListItem , ListState , Paragraph , Wrap } , use unicode_width :: UnicodeWidthStr , use crate :: app :: state :: { AppState , Focus , Row , View } , use crate :: domain :: model :: LibraryStatus , pub use crate :: ui :: detail :: render_detail , use crate :: ui :: theme :: Theme , use crate :: ui :: widgets :: { fit , panel } 
 - **Public Functions & Signatures**:
   ```rust
   fn render_list (f : & mut Frame , area : Rect , state : & AppState)
-  fn render_detail (f : & mut Frame , area : Rect , state : & AppState)
+  fn status_glyph (status : LibraryStatus) -> (& 'static str , Style)
   ```
 
-### `src/ui/poster.rs` (Role: tui, Lines: 244)
+### `src/ui/poster.rs` (Role: tui, Lines: 374)
 - **Responsibility**: Core tui logic in src/ui/poster.rs
-- **Imports**: use ratatui :: prelude :: * , use ratatui :: widgets :: { Paragraph , Wrap } , use unicode_width :: UnicodeWidthStr , use crate :: app :: state :: { AppState , Focus } , use crate :: ui :: theme :: Theme , use crate :: ui :: widgets :: { fit , panel } 
+- **Imports**: use ratatui :: prelude :: * , use ratatui :: widgets :: { Paragraph , Wrap } , use crate :: app :: state :: { AppState , Focus } , use crate :: domain :: model :: Anime , use crate :: ui :: cover :: { compute_cover_dimensions , render_cover , render_placeholder } , use crate :: ui :: theme :: Theme , use crate :: ui :: widgets :: { fit , panel } , pub use crate :: ui :: widgets :: { title_width , wrap_title } 
 - **Public Functions & Signatures**:
   ```rust
   fn render_poster (f : & mut Frame , area : Rect , state : & AppState)
-  fn poster_width (terminal_width : u16) -> u16
-  fn fits (terminal_width : u16) -> bool
-  fn title_width (area : Rect) -> usize
-  fn wrap_title (title : & str , width : usize , max_lines : usize) -> Vec < String >
+  fn poster_width (width : u16) -> u16
+  fn fits (width : u16) -> bool
   ```
 
 ### `src/ui/theme.rs` (Role: tui, Lines: 63)
@@ -506,7 +526,7 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   fn status_glyph (status : crate :: domain :: model :: LibraryStatus) -> & 'static str
   ```
 
-### `src/ui/widgets.rs` (Role: tui, Lines: 56)
+### `src/ui/widgets.rs` (Role: tui, Lines: 87)
 - **Responsibility**: Core tui logic in src/ui/widgets.rs
 - **Imports**: use ratatui :: prelude :: * , use ratatui :: widgets :: { Block , BorderType , Borders } , use unicode_width :: { UnicodeWidthChar , UnicodeWidthStr } , use crate :: ui :: theme :: Theme 
 - **Public Functions & Signatures**:
@@ -514,6 +534,8 @@ Entrypoint ──> CLI/Parser ──> Domain Logic ──> Infra/IO
   fn panel (title : & str , focused : bool) -> Block < 'static >
   fn fit (text : & str , width : usize) -> String
   fn fit_title (title : & str , inner_width : u16 , meta_width : usize) -> String
+  fn title_width (area : Rect) -> usize
+  fn wrap_title (title : & str , width : usize , max_lines : usize) -> Vec < String >
   ```
 
 ## 4. Execution Lifecycle Trace

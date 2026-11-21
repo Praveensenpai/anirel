@@ -15,6 +15,7 @@ pub struct MemberInfo {
     pub title_japanese: Option<String>,
     pub format: String,
     pub episodes: Option<i64>,
+    pub episodes_watched: Option<i64>,
     pub year: Option<i32>,
     pub airing_status: String,
     pub relation: String,
@@ -108,6 +109,7 @@ pub fn report_from_members(
                 title_japanese: anime.title_japanese.clone(),
                 format: anime.format.clone(),
                 episodes: anime.episodes,
+                episodes_watched: entry.map(|e| e.episodes_watched),
                 year: anime.year,
                 airing_status: anime.airing_status.clone(),
                 relation: relation.label().to_string(),
@@ -170,8 +172,7 @@ pub fn format_franchise(report: &FranchiseReport) -> String {
     if unwatched > 0 {
         summary.push_str(&format!(", {unwatched} unwatched"));
     }
-    out.push_str(&format!("{} — {summary}\n", report.name));
-    out.push('\n');
+    out.push_str(&format!("{} — {summary}\n\n", report.name));
 
     let title_width = report
         .members
@@ -182,42 +183,50 @@ pub fn format_franchise(report: &FranchiseReport) -> String {
         .clamp(10, 44);
 
     for member in &report.members {
-        let glyph = match (member.in_library, member.status.as_deref()) {
-            (false, _) => "◌",
-            (true, Some("completed")) => "✓",
-            (true, Some("watching")) => "▶",
-            (true, Some("plan-to-watch")) => "○",
-            (true, Some("on-hold")) => "⏸",
-            (true, Some("dropped")) => "✗",
-            _ => "•",
-        };
-        let mut meta = vec![member.format.clone()];
-        meta.push(match member.episodes {
-            Some(episodes) => format!("{episodes} ep"),
-            None => "?".into(),
-        });
-        meta.push(member.year.map(|y| y.to_string()).unwrap_or("?".into()));
-        if !member.airing_status.contains("Finished") {
-            meta.push("not aired".into());
-        }
-        if let Some(score) = member.score {
-            meta.push(format!("score {score}"));
-        }
-
-        let title = pad(&truncate(member.display_title(), title_width), title_width);
-        out.push_str(&format!("  {glyph} {title}  {}\n", meta.join(" · ")));
-        let detail = if member.in_library {
-            format!(
-                "      {} · {}",
-                member.status.as_deref().unwrap_or(""),
-                member.relation
-            )
-        } else {
-            format!("      MISSING · {}", member.relation)
-        };
-        out.push_str(&format!("{}\n", detail));
+        out.push_str(&format_member_entry(member, title_width));
     }
     out
+}
+
+fn format_member_entry(member: &MemberInfo, title_width: usize) -> String {
+    let glyph = match (member.in_library, member.status.as_deref()) {
+        (false, _) => "◌",
+        (true, Some("completed")) => "✓",
+        (true, Some("watching")) => "▶",
+        (true, Some("plan-to-watch")) => "○",
+        (true, Some("on-hold")) => "⏸",
+        (true, Some("dropped")) => "✗",
+        _ => "•",
+    };
+    let mut meta = vec![member.format.clone()];
+    meta.push(match member.episodes {
+        Some(episodes) => format!("{episodes} ep"),
+        None => "?".into(),
+    });
+    meta.push(member.year.map(|y| y.to_string()).unwrap_or("?".into()));
+    if !member.airing_status.contains("Finished") {
+        meta.push("not aired".into());
+    }
+    if let Some(score) = member.score {
+        meta.push(format!("score {score}"));
+    }
+
+    let title = pad(&truncate(member.display_title(), title_width), title_width);
+    let detail = if member.in_library {
+        let ep_info = match (member.episodes_watched, member.episodes) {
+            (Some(w), Some(t)) => format!(" ({w}/{t} ep)"),
+            (Some(w), None) => format!(" ({w} ep)"),
+            _ => String::new(),
+        };
+        format!(
+            "      {}{ep_info} · {}",
+            member.status.as_deref().unwrap_or(""),
+            member.relation
+        )
+    } else {
+        format!("      MISSING · {}", member.relation)
+    };
+    format!("  {glyph} {title}  {}\n{}\n", meta.join(" · "), detail)
 }
 
 /// Plain-text report of every missing entry.
@@ -322,6 +331,7 @@ fn member_json(member: &MemberInfo) -> Value {
         "title_japanese": member.title_japanese,
         "format": member.format,
         "episodes": member.episodes,
+        "episodes_watched": member.episodes_watched,
         "year": member.year,
         "airing_status": member.airing_status,
         "relation": member.relation,
@@ -337,16 +347,13 @@ fn member_json(member: &MemberInfo) -> Value {
 /// Markdown report for the whole library.
 pub fn markdown_report(reports: &[FranchiseReport], user: &str) -> String {
     let total: usize = reports.iter().map(|r| r.missing_with(false).len()).sum();
-    let mut out = format!("# Missing related anime — {user}\n\n");
-    out.push_str(&format!(
-        "{} missing related entries across {} franchises.\n\n",
-        total,
+    let mut out = format!(
+        "# Missing related anime — {user}\n\n{total} missing related entries across {} franchises.\n\n| Franchise | Missing | Owned | Title | Relation | Year | Link |\n|---|---|---|---|---|---|---|\n",
         reports.len()
-    ));
-    out.push_str("| Franchise | Missing | Owned | Title | Relation | Year | Link |\n");
-    out.push_str("|---|---|---|---|---|---|---|\n");
+    );
     for report in reports {
         for member in report.missing_with(false) {
+            let yr = member.year.map(|y| y.to_string()).unwrap_or("?".into());
             out.push_str(&format!(
                 "| {} | ◌ {} | {}/{} | {} | {} | {} | [MAL]({}) |\n",
                 report.name,
@@ -355,7 +362,7 @@ pub fn markdown_report(reports: &[FranchiseReport], user: &str) -> String {
                 report.total(),
                 member.display_title(),
                 member.relation,
-                member.year.map(|y| y.to_string()).unwrap_or("?".into()),
+                yr,
                 member.url()
             ));
         }

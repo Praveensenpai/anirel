@@ -20,7 +20,7 @@ pub enum ScanEvent {
     /// The scan failed.
     Failed(String),
     /// A cover image finished downloading.
-    CoverReady(i64, crate::art::CoverArt),
+    CoverReady(i64, Option<crate::art::CoverArt>),
     /// A single-title load finished; its franchise can now be shown.
     LoadComplete(i64),
     /// The user's list was re-downloaded, or the attempt failed.

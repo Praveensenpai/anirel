@@ -54,3 +54,34 @@ pub fn fit_title(title: &str, inner_width: u16, meta_width: usize) -> String {
     let available = (inner_width as usize).saturating_sub(reserved).max(4);
     fit(title, available)
 }
+
+/// Longest title that fits the card, for layout maths.
+pub fn title_width(area: Rect) -> usize {
+    area.width.saturating_sub(2) as usize
+}
+
+/// Wrap a title into at most `max_lines` lines.
+pub fn wrap_title(title: &str, width: usize, max_lines: usize) -> Vec<String> {
+    let mut lines = Vec::new();
+    let mut current = String::new();
+    for word in title.split_whitespace() {
+        let candidate = if current.is_empty() {
+            word.into()
+        } else {
+            format!("{current} {word}")
+        };
+        if candidate.width() > width && !current.is_empty() {
+            lines.push(std::mem::take(&mut current));
+            if lines.len() == max_lines {
+                break;
+            }
+            current = word.into();
+        } else {
+            current = candidate;
+        }
+    }
+    if !current.is_empty() && lines.len() < max_lines {
+        lines.push(current);
+    }
+    lines
+}

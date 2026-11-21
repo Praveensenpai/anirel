@@ -52,6 +52,7 @@ async fn event_loop(
     engine: &Engine,
 ) -> anyhow::Result<()> {
     loop {
+        trigger_cover_fetch(state, tx);
         terminal.draw(|f| crate::ui::draw(f, state))?;
 
         if event::poll(Duration::from_millis(80))? {
@@ -102,7 +103,9 @@ async fn event_loop(
                     state.scan.error = Some(error);
                     state.loading = None;
                 }
-                ScanEvent::CoverReady(_, _) => {}
+                ScanEvent::CoverReady(mal_id, maybe_art) => {
+                    state.set_cover(mal_id, maybe_art);
+                }
                 ScanEvent::LibraryRefreshed(result) => match result {
                     Ok(library) => {
                         let count = library.entries.len();
@@ -168,6 +171,29 @@ async fn event_loop(
         }
     }
     Ok(())
+}
+
+fn trigger_cover_fetch(state: &mut AppState, tx: &mpsc::UnboundedSender<ScanEvent>) {
+    let Some(anime) = state.focus_target().or_else(|| state.current_anime()) else {
+        return;
+    };
+    let mal_id = anime.mal_id;
+    if state.covers.contains_key(&mal_id) || state.fetching_covers.contains(&mal_id) {
+        return;
+    }
+    let Some(url) = anime.cover_url.clone() else {
+        state.covers.insert(mal_id, None);
+        return;
+    };
+    state.fetching_covers.insert(mal_id);
+    let tx = tx.clone();
+    tokio::spawn(async move {
+        let art = match crate::art::ensure_cached(&url).await {
+            Some(path) => crate::art::decode(&path).ok(),
+            None => None,
+        };
+        tx.send(ScanEvent::CoverReady(mal_id, art)).ok();
+    });
 }
 
 fn handle_effect(

@@ -197,6 +197,15 @@ impl LibraryEntry {
     pub fn url(&self) -> String {
         self.anime.url()
     }
+
+    /// Formatted episode progress, e.g. "12/12 ep" or "5/24 ep" or "3 ep".
+    pub fn format_progress(&self) -> String {
+        match self.anime.episodes {
+            Some(total) => format!("{}/{} ep", self.episodes_watched, total),
+            None if self.episodes_watched > 0 => format!("{} ep", self.episodes_watched),
+            None => "? ep".to_string(),
+        }
+    }
 }
 
 /// The user's whole library, indexed for fast lookup.

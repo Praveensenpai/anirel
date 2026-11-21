@@ -326,3 +326,36 @@ fn sort_by_last_updated_orders_by_timestamp_descending() {
     state.set_sort(anirel::app::state::SortOrder::LastUpdated);
     assert_eq!(state.current_anime().unwrap().title, "Recent Title");
 }
+
+#[test]
+fn library_pane_renders_watched_episodes() {
+    let state = loaded_state();
+    let frame = render(&state, 130, 26);
+    assert!(
+        frame.contains("12/12 ep"),
+        "watched episodes rendered in library:\n{frame}"
+    );
+}
+
+#[test]
+fn poster_renders_watched_episode_count_and_cover_art() {
+    let mut state = loaded_state();
+    // Select Yuru Camp (at index 1 after alphabetical sort)
+    state.selected = 1;
+    let art = anirel::art::CoverArt {
+        width: 10,
+        height: 15,
+        pixels: vec![200; 10 * 15 * 3],
+    };
+    state.set_cover(1, Some(art));
+    let frame = render(&state, 140, 28);
+
+    assert!(
+        frame.contains("12/12 ep watched"),
+        "watched episodes in poster:\n{frame}"
+    );
+    assert!(
+        frame.contains('▀'),
+        "half-block cover art rendered in poster:\n{frame}"
+    );
+}

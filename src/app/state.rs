@@ -1,5 +1,7 @@
 //! Application state and pure state transitions.
 
+use std::collections::{HashMap, HashSet};
+
 use crate::app::fuzzy;
 use crate::config::Scope;
 use crate::domain::cluster::{Cluster, RelationGraph, build_clusters};
@@ -140,6 +142,8 @@ pub struct AppState {
     pub detail_root: Option<i64>,
     /// A franchise rooted at a specific title, shown after a dive.
     pub focus_cluster: Option<crate::domain::cluster::Cluster>,
+    pub covers: HashMap<i64, Option<crate::art::CoverArt>>,
+    pub fetching_covers: HashSet<i64>,
     rows: Vec<Row>,
 }
 
@@ -179,6 +183,8 @@ impl AppState {
             scope,
             detail_root: None,
             focus_cluster: None,
+            covers: HashMap::new(),
+            fetching_covers: HashSet::new(),
             rows: Vec::new(),
         };
         state.rebuild_rows();
@@ -428,5 +434,18 @@ impl AppState {
 
     pub fn library_entry(&self, mal_id: i64) -> Option<&LibraryEntry> {
         self.library.get(mal_id)
+    }
+
+    pub fn cover_for(&self, mal_id: i64) -> Option<&crate::art::CoverArt> {
+        self.covers.get(&mal_id).and_then(|c| c.as_ref())
+    }
+
+    pub fn is_fetching_cover(&self, mal_id: i64) -> bool {
+        self.fetching_covers.contains(&mal_id)
+    }
+
+    pub fn set_cover(&mut self, mal_id: i64, cover: Option<crate::art::CoverArt>) {
+        self.fetching_covers.remove(&mal_id);
+        self.covers.insert(mal_id, cover);
     }
 }
